@@ -1,0 +1,15 @@
+.*
+!.gitignore
+!.github/
+
+*pyc
+__pycache__
+
+chat/
+logs/
+*.log
+*.log.*
+
+config.yaml
+
+wechat_bot.db
