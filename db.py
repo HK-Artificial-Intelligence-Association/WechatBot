@@ -116,20 +116,20 @@ def insert_roomid(roomid):
         conn.close()
 
 
-def fetch_messages_from_last_hour(roomid):
-    """从数据库中获取过去半小时内的所有消息，并打印获取到的消息内容"""
+def fetch_messages_from_last_two_hour(roomid):
+    """从数据库中获取过去两小时内的所有消息，并打印获取到的消息内容"""
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    #获取当前时间戳和半小时前的时间戳
+    #获取当前时间戳和两小时前的时间戳
     current_time = int(datetime.now().timestamp())
-    one_hour_ago = current_time - 1800
-    print(f"当前时间戳：{current_time}, 半小时前时间戳：{one_hour_ago}")  # 打印当前时间和半小时前的时间戳
+    two_hour_ago = current_time - 7200
+    print(f"当前时间戳：{current_time}, 两小时前时间戳：{two_hour_ago}")  # 打印当前时间和两小时前的时间戳
     #执行SQL查询以获取消息
     try:
         # 查询符合 roomid 和时间戳条件的消息，且 content 不包含 "@小狲狲"
         cursor.execute(
             "SELECT content, sender, ts FROM messages WHERE roomid = ? AND ts >= ? AND content NOT LIKE '%@小狲狲%'",
-            (roomid, one_hour_ago)
+            (roomid, two_hour_ago)
         )
         rows = cursor.fetchall()
         

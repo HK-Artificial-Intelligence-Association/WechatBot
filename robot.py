@@ -31,7 +31,7 @@ from configuration import Config # 配置管理模块
 from constants import ChatType # 常量定义模块，定义了聊天类型
 from job_mgmt import Job # 作业管理基类，`Robot`类继承自此
 from db import store_message, insert_roomid # 导入 db.py 中的 store_message 函数,add_unique_roomids_to_roomid_table 函数
-from db import fetch_messages_from_last_hour
+from db import fetch_messages_from_last_two_hour
 from utils.yaml_utils import update_yaml
 
 __version__ = "39.0.10.1" # 版本号
@@ -222,8 +222,9 @@ class Robot(Job):#robot类继承自job类
                 f"我是兔狲机器人，小狲狲，你好鸭。当前我使用的模型是：{self.model_type}\n"
                 "你可以使用以下命令：\n"
                 "1. /help - 获取帮助信息\n"
-                "2. /总结 - 获取聊天总结\n"
-                "3. 后续功能还在开发中，敬请期待！\n",
+                "2. /总结1 - 获取2小时内分话题式聊天总结\n"
+                "3. /总结2 - 获取2小时内不话题式聊天总结\n"
+                "4. 后续功能还在开发中，敬请期待！\n",
                 msg_dict["roomid"]
             )
 
@@ -293,7 +294,7 @@ class Robot(Job):#robot类继承自job类
 
     def handle_summary_request(self, msg: WxMsg):
         """处理总结请求,使用GPT生成总结"""
-        messages_withwxid = fetch_messages_from_last_hour(msg.roomid)
+        messages_withwxid = fetch_messages_from_last_two_hour(msg.roomid)
 
             # 将messages里的wxid替换成wx昵称
         messages = []
@@ -306,14 +307,21 @@ class Robot(Job):#robot类继承自job类
             messages.append(message)
 
         if messages:
-            summary = self.chat.get_summary(messages,msg.roomid)
+            if "/总结1" in msg.content:
+                summary = self.chat.get_summary1(messages, msg.roomid)
+            elif "/总结2" in msg.content:
+                summary = self.chat.get_summary2(messages, msg.roomid)
+            else:
+                print("未知的总结请求类型。", msg.sender)
+                return
+            
             # 发送总结到微信
             if msg.from_group():
                 self.sendTextMsg(summary, msg.roomid, msg.sender)
             else:
                 self.sendTextMsg(summary, msg.sender)
         else:
-            print("过去一小时内没有足够的消息来生成总结。", msg.sender)
+            print("过去2小时内没有足够的消息来生成总结。", msg.sender)
 
 
 
