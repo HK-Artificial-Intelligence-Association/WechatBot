@@ -43,6 +43,21 @@ def main(chat_type: int):
     robot.enableReceivingMsg()  # 加队列
 
     # 设置定时任务，每天特定时间执行特定任务
+    # 注意onEveryTime函数的参数是可调用对象，即函数或方法。
+    
+    # 每天8点收集23-8群聊摘要
+    robot.onEveryTime("08:00", robot.saveAutoSummary,time_hours=9)
+    # 每天12点收集8-12群聊摘要
+    robot.onEveryTime("12:00", robot.saveAutoSummary,time_hours=4)
+    # 每天17点收集12-17群聊摘要
+    robot.onEveryTime("17:11", robot.saveAutoSummary,time_hours=5)
+    # 每天23点收集17-23群聊摘要
+    robot.onEveryTime("23:00", robot.saveAutoSummary,time_hours=6)
+    # 每天24点发送每日聊天总结
+    robot.onEveryTime("23:59", robot.sendDailySummary)
+    # 测试
+    # robot.saveAutoSummary(time_hours = 1)
+    # robot.sendDailySummary()
     # 每天 7 点发送天气预报
     #robot.onEveryTime("07:00", robot.sendWeatherReport)
 
