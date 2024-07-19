@@ -16,3 +16,5 @@ ipykernel
 google-generativeai
 zhipuai
 sympy
+tiktoken
+apscheduler
