@@ -22,6 +22,7 @@ from base.func_chatglm import ChatGLM # ChatGLM对话模型，可能是基于GPT
 from base.func_chatgpt import ChatGPT # ChatGPT对话模型
 from base.func_chatgptt import ChatGPTt
 from base.func_moonshot import Moonshot
+from base.func_deepseek import DeepSeek
 from base.func_Qwen import Qwen
 from base.func_chengyu import cy # 成语处理功能
 from base.func_news import News# 新闻功能模块
@@ -30,8 +31,8 @@ from base.func_xinghuo_web import XinghuoWeb # 星火Web功能，可能提供网
 from configuration import Config # 配置管理模块
 from constants import ChatType # 常量定义模块，定义了聊天类型
 from job_mgmt import Job # 作业管理基类，`Robot`类继承自此
-from db import store_message, insert_roomid # 导入 db.py 中的 store_message 函数,add_unique_roomids_to_roomid_table 函数
-from db import fetch_messages_from_last_two_hour
+from db import store_message, insert_roomid, store_summary # 导入 db.py 中的 store_message 函数,add_unique_roomids_to_roomid_table 函数
+from db import fetch_messages_from_last_some_hour,fetch_summary_from_db
 from utils.yaml_utils import update_yaml
 
 __version__ = "39.0.10.1" # 版本号
@@ -51,6 +52,7 @@ class Robot(Job):#robot类继承自job类
         self.allContacts = self.getAllContacts()# 获取所有联系人
         self.active = True # 状态标识，True为活跃，False为关闭
         self.model_type = None  # 初始化 model_type
+        self.calltime = 10 # 初始化调用次数
 
     # 根据聊天类型初始化对应的聊天模型
         if ChatType.is_in_chat_types(chat_type):
@@ -77,6 +79,9 @@ class Robot(Job):#robot类继承自job类
                 self.chat = BardAssistant(self.config.BardAssistant)
             elif chat_type == ChatType.ZhiPu.value and ZhiPu.value_check(self.config.ZHIPU):
                 self.chat = ZhiPu(self.config.ZHIPU)
+            elif chat_type == ChatType.DeepSeek.value and DeepSeek.value_check(self.config.DEEPSEEK):
+                self.chat = DeepSeek(self.config.DEEPSEEK)
+                self.model_type = 'DeepSeek-deepseek-chat'
             else:
                 self.LOG.warning("未配置模型")
                 self.chat = None# 如果没有合适的配置，将聊天模型设置为None
@@ -101,6 +106,8 @@ class Robot(Job):#robot类继承自job类
                 self.chat = BardAssistant(self.config.BardAssistant)
             elif ZhiPu.value_check(self.config.ZhiPu):
                 self.chat = ZhiPu(self.config.ZhiPu)
+            elif DeepSeek.value_check(self.config.DEEPSEEK):
+                self.chat = DeepSeek(self.config.DEEPSEEK)
             else:
                 self.LOG.warning("未配置模型")
                 self.chat = None
@@ -237,7 +244,7 @@ class Robot(Job):#robot类继承自job类
                 self.handle_open(msg)
             elif content == "/nus":
                 self.handle_close(msg)
-            elif "@" in content and "/总结" in content and msg_dict['type'] != 49:
+            elif "@" in content and "总结" in content and msg_dict['type'] != 49:
                 self.handle_summary_request(msg)
             elif "/change" in content:
                 self.change_model(msg)
@@ -271,6 +278,9 @@ class Robot(Job):#robot类继承自job类
             elif chat_type == ChatType.QWEN.value and Qwen.value_check(self.config.QWEN):
                 self.chat = Qwen(self.config.QWEN)
                 self.model_type = 'Qwen-qwen-plus'
+            elif chat_type == ChatType.DeepSeek.value and DeepSeek.value_check(self.config.DEEPSEEK):
+                self.chat = DeepSeek(self.config.DEEPSEEK)
+                self.model_type = 'DeepSeek-deepseek-chat'
             else:
                 self.LOG.warning("未配置模型")
                 self.chat = None  # 如果没有合适的配置，将聊天模型设置为None
@@ -292,16 +302,15 @@ class Robot(Job):#robot类继承自job类
         self.LOG.info(f"已选择: {self.chat}")
 
 
-    def handle_summary_request(self, msg: WxMsg):
-        """处理总结请求,使用GPT生成总结"""
-        messages_withwxid = fetch_messages_from_last_two_hour(msg.roomid)
-
-            # 将messages里的wxid替换成wx昵称
+    def handle_summary_request(self, msg: WxMsg, time_hours=2):
+        """处理总结请求,使用GPT生成总结，默认提取2小时的聊天记录"""
+        messages_withwxid = fetch_messages_from_last_some_hour(msg.roomid, time_hours)
+        
         messages = []
         for message_withwxid in messages_withwxid:
             message = {
                 "content": message_withwxid["content"],
-                "sender": self.wcf.get_info_by_wxid(message_withwxid["sender_id"]),
+                "sender": self.wcf.get_info_by_wxid(message_withwxid["sender_id"]),# 将messages里的wxid替换成wx昵称
                 "time": message_withwxid["time"]
             }
             messages.append(message)
@@ -314,12 +323,15 @@ class Robot(Job):#robot类继承自job类
             else:
                 print("未知的总结请求类型。", msg.sender)
                 return
-            
+
             # 发送总结到微信
             if msg.from_group():
                 self.sendTextMsg(summary, msg.roomid, msg.sender)
+                self.sendTextMsg(f"本群总结调用次数还剩{self.calltime}次", msg.roomid, msg.sender)
             else:
                 self.sendTextMsg(summary, msg.sender)
+                self.sendTextMsg(f"本群总结调用次数还剩{self.calltime}次", msg.sender)
+            self.calltime -= 1 # 自减并提示 后续需要加入大于0判断以及每日重置
         else:
             print("过去2小时内没有足够的消息来生成总结。", msg.sender)
 
@@ -489,3 +501,71 @@ class Robot(Job):#robot类继承自job类
         for receiver in receivers:
             self.sendTextMsg(report, receiver)
     
+    def sendAutoSummary(self,time_hours=2) -> None:
+        """自动总结，默认总结2小时的聊天记录"""
+        receivers = []  # 指定接收者，可以根据需要进行修改
+        for receiver in receivers:
+            messages_withwxid = fetch_messages_from_last_some_hour(roomid = receiver, time_hours=time_hours)
+            # 将messages里的wxid替换成wx昵称
+            messages = []
+            
+            for message_withwxid in messages_withwxid:
+                message = {
+                    "content": message_withwxid["content"],
+                    "sender": self.wcf.get_info_by_wxid(message_withwxid["sender_id"]),
+                    "time": message_withwxid["time"]
+                }
+                messages.append(message)
+
+            summary = self.chat.get_summary1(messages, receiver)# 生成聊天总结
+            self.sendTextMsg(summary, receiver)# 发送总结内容
+
+
+    def saveAutoSummary(self, time_hours=2):
+        """
+        生成并保存聊天总结 目前只用深度求索
+        """
+        receivers = []  # 指定总结群聊，可以根据需要进行修改
+        #切换到DeepSeek模型进行总结
+        # self.chat = DeepSeek(self.config.DEEPSEEK)
+        # self.model_type = 'DeepSeek-deepseek-chat'
+        # self.LOG.info(f"已选择: {self.chat}")
+        for receiver in receivers:
+            messages_withwxid = fetch_messages_from_last_some_hour(receiver, time_hours)
+            messages = []
+            for message_withwxid in messages_withwxid:
+                if self.wcf.get_info_by_wxid(message_withwxid["sender_id"]).get("sender_id") is None:# 将messages里的wxid替换成wx昵称
+                    sender = message_withwxid["sender_id"]
+                    self.LOG.info(f"{sender}昵称获取错误，已使用wxid替换")
+                else:
+                    sender = self.wcf.get_info_by_wxid(message_withwxid["sender_id"]).get("sender_id")
+                    self.LOG.info(f"{sender}昵称获取成功啦")
+                message = {
+                    "content": message_withwxid["content"],
+                    "sender":sender,
+                    "time": message_withwxid["time"]
+                }
+                messages.append(message)
+
+            summary = self.chat.get_summary1(messages,roomid=receiver)
+            store_summary(receiver, summary, int(datetime.now().timestamp()))
+        # 切换回4o
+        # self.chat = ChatGPTt(self.config.CHATGPTt)
+        # self.model_type = 'gpt-4-turbo-2024-04-09'
+        # self.LOG.info(f"已选择: {self.chat}")
+
+        return []
+    def sendDailySummary(self) -> None:# 以后会新增参数或者函数（sendWeeklySummary）
+        '''发送每日总结并存入数据库'''
+        receivers = []  # 指定总结群聊，可以根据需要进行修改
+        for receiver in receivers:
+            summaries = fetch_summary_from_db(receiver, 'partly')
+            if summaries:
+                summary = self.chat.get_summary1(summaries, receiver)
+                ts = int(datetime.now().timestamp())
+                store_summary(receiver, summary, ts, type='daily') # 存入每日数据库
+                self.sendTextMsg(summary, receiver) # 若需要@所有人，添加参数at_list == "notify@all"即可
+                self.LOG.info(f"已发送{receiver}的每日总结")
+            else:
+                print("过去没有足够的消息来生成总结。", receiver)
+        

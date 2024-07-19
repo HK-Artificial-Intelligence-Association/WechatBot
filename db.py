@@ -1,9 +1,11 @@
 import sqlite3
 import os
 import time
+import re
 from utils.token_utils import num_tokens_from_string, get_gptmodel_name
 from datetime import datetime, timedelta
 from wcferry import Wcf, WxMsg # wcferry库提供的基础类和消息类，用于微信通讯
+from tools import contentFilter
 
 db_path = 'wechat_bot.db'
 
@@ -41,6 +43,20 @@ def create_database():
     )
     ''')
 
+
+    """
+    创建 summary 表
+    """
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS summary (
+        roomid TEXT NOT NULL,
+        date DATE,
+        summary TEXT,
+        ts INTEGER NOT NULL,
+        type TEXT,
+        PRIMARY KEY (roomid, ts)
+    )
+    ''')
 
     conn.commit()
     conn.close()
@@ -116,6 +132,30 @@ def insert_roomid(roomid):
         conn.close()
 
 
+def store_summary(roomid, summary, ts, type='partly'):
+    """
+    将 roomid, summary 和 ts 插入到 'summary' 表中，其中 date 由 ts 计算得出。
+    """
+    # 连接到数据库
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+
+    # 从 ts 中提取 date
+    date = datetime.fromtimestamp(ts).strftime('%Y年%m月%d日')
+
+    # 插入数据到 'summary' 表
+    c.execute('''
+    INSERT INTO summary (ts, roomid, summary, date, type)
+    VALUES (?, ?, ?, ?, ?)
+    ''', (ts, roomid, summary, date, type))
+
+    # 提交更改并关闭连接
+    conn.commit()
+    conn.close()
+
+    print(f"已将对{roomid}于{date}的{type}聊天记录总结加入数据库")
+
+
 def fetch_messages_from_last_two_hour(roomid):
     """从数据库中获取过去两小时内的所有消息，并打印获取到的消息内容"""
     conn = sqlite3.connect(db_path)
@@ -157,6 +197,50 @@ def fetch_messages_from_last_two_hour(roomid):
     finally:
         conn.close()
 
+# 调用指定时间内的消息
+def fetch_messages_from_last_some_hour(roomid,time_hours):
+    """从数据库中获取过去几个小时内的所有消息，并打印获取到的消息内容"""
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    #获取当前时间戳和几小时前的时间戳
+    current_time = int(datetime.now().timestamp())
+    before_time = int(current_time - 3600*time_hours)# 首先乘以秒数再转为int防止数据库检索失败
+    print(f"当前时间戳：{current_time}, {time_hours}小时前时间戳：{before_time}")  # 打印当前时间和n小时前的时间戳
+    #执行SQL查询以获取消息
+    try:
+        # 查询符合 roomid 和时间戳条件的消息，且 content 不包含 "@小狲狲"
+        cursor.execute(
+            "SELECT content, sender, ts FROM messages WHERE roomid = ? AND ts >= ? AND content NOT LIKE '%@小狲狲%'",
+            (roomid, before_time)
+        )
+        rows = cursor.fetchall()
+        
+        if rows:
+            print("成功获取以下消息：")
+            messages = []
+            for row in rows:
+                content, sender_id, timestamp = row
+                readable_time = datetime.fromtimestamp(timestamp).strftime('%Y年%m月%d日 %H:%M:%S')
+                content = contentFilter(content)#过滤掉xml
+                message = {
+                    "content": content,
+                    "sender_id": sender_id,
+                    "time": readable_time
+                }
+                messages.append(message)
+                print(f"内容: {content}, 发送者ID: {sender_id}, 时间: {readable_time}")
+        else:
+            print(f"过去{time_hours}小时内没有消息。")
+            return []
+
+        return messages
+    except Exception as e:
+        print(f"获取消息失败：{e}")
+        return []
+    finally:
+        conn.close()
+
+
 def fetch_roomid_from_db():
     """从数据库获取最新的单个roomid"""
     try:
@@ -190,3 +274,28 @@ def fetch_roomids_from_db():
     room_ids = [row[0] for row in cursor.fetchall()]
     conn.close()
     return room_ids
+
+def fetch_summary_from_db(roomid, type):
+    '''从数据库收集指定类型的定时总结'''
+    # 连接到SQLite数据库
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    # if type=='daily':hour=24
+    # elif type=='weekly':hour=24*7
+    # elif type=='monthly':hour=24*30
+    # 还有else的情况 以及总结过程中的时间问题，月总结是否需要日期？
+    current_time = int(datetime.now().timestamp())
+    # one_day_ago = current_time - 3600*hour
+    one_day_ago = current_time - 3600*24
+    # 执行SQL查询，获取特定roomid且ts大于tempts的所有summary数据
+    c.execute("SELECT summary FROM summary WHERE roomid = ? AND type = ? AND ts >= ?", (roomid, type, one_day_ago))
+    
+    # 获取所有查询结果
+    
+    summaries = c.fetchall()
+    
+    # 关闭数据库连接
+    conn.close()
+    
+    # 将结果转换为列表，因为fetchall()返回的是元组列表
+    return [summary[0] for summary in summaries]
