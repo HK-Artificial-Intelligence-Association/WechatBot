@@ -307,13 +307,21 @@ class Robot(Job):#robot类继承自job类
     def handle_summary_request(self, msg: WxMsg, time_hours=2):
         """处理总结请求,使用GPT生成总结，默认提取2小时的聊天记录"""
         messages_withwxid = fetch_messages_from_last_some_hour(msg.roomid, time_hours)
-        
+
         messages = []
+
         for message_withwxid in messages_withwxid:
+            sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], msg.roomid)
+            # 将messages里的wxid替换成wx昵称，get_info_by_wxid因不明原因出错，故改用get_alias_in_chatroom方法
+            if sender == "": # 若读取昵称失败，使用wxid替代
+                sender = message_withwxid["sender_id"]
+                self.LOG.info(f"{sender}昵称获取错误，已使用wxid替换")
+            else:
+                self.LOG.info(f"{sender}昵称获取成功啦")
+
             message = {
                 "content": message_withwxid["content"],
-                # 将messages里的wxid替换成wx昵称，get_info_by_wxid因不明原因出错，故改用get_alias_in_chatroom方法
-                "sender":self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], msg.roomid),
+                "sender":sender,
                 "time": message_withwxid["time"]
             }
             messages.append(message)
@@ -513,10 +521,16 @@ class Robot(Job):#robot类继承自job类
             messages = []
             
             for message_withwxid in messages_withwxid:
+                sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver)
+                if sender == "": # 将messages里的wxid替换成wx昵称
+                    sender = message_withwxid["sender_id"]
+                    self.LOG.info(f"{sender}昵称获取错误，已使用wxid替换")
+                else:
+                    self.LOG.info(f"{sender}昵称获取成功啦")
                 message = {
                     "content": message_withwxid["content"],
                     #"sender": self.wcf.get_info_by_wxid(message_withwxid["sender_id"]),
-                    "sender":self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver),
+                    "sender":sender,
                     "time": message_withwxid["time"]
                 }
                 messages.append(message)
@@ -529,7 +543,7 @@ class Robot(Job):#robot类继承自job类
         """
         生成并保存聊天总结 目前只用深度求索
         """
-        receivers = ["45647094112@chatroom","19046067886@chatroom"]  # 指定总结群聊，可以根据需要进行修改
+        receivers = []  # 指定总结群聊，可以根据需要进行修改
         if not receivers:print("没有指定进行总结的群聊")
         #切换到DeepSeek模型进行总结
         # self.chat = DeepSeek(self.config.DEEPSEEK)
@@ -541,7 +555,7 @@ class Robot(Job):#robot类继承自job类
             messages = []
             for message_withwxid in messages_withwxid:
                 sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver),
-                if not sender: # 将messages里的wxid替换成wx昵称
+                if sender == "": # 将messages里的wxid替换成wx昵称
                     sender = message_withwxid["sender_id"]
                     self.LOG.info(f"{sender}昵称获取错误，已使用wxid替换")
                 else:
@@ -563,7 +577,7 @@ class Robot(Job):#robot类继承自job类
         return []
     def sendDailySummary(self) -> None:# 以后会新增参数或者函数（sendWeeklySummary）
         '''发送每日总结并存入数据库'''
-        receivers = ["19046067886@chatroom"]  # 指定总结群聊，可以根据需要进行修改
+        receivers = []  # 指定总结群聊，可以根据需要进行修改
         for receiver in receivers:
             summaries = fetch_summary_from_db(receiver, 'partly')
             if summaries:
@@ -607,7 +621,7 @@ class Robot(Job):#robot类继承自job类
 
 
         # self.sendTextMsg("测试", receiver)
-        # self.wcf.send_image("https://t7.baidu.com/it/u=4036010509,3445021118&fm=193&f=GIF", "45647094112@chatroom")
+        # self.wcf.send_image("https://t7.baidu.com/it/u=4036010509,3445021118&fm=193&f=GIF", receiver)
 
 
 
