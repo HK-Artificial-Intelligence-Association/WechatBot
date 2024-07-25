@@ -1,4 +1,5 @@
 import re
+import requests
 
 # 去除content中的xml代码并提取关键信息
 '''在func的append之前调用
@@ -36,3 +37,13 @@ def contentFilter(content):
         else:
             content = ""
     return content
+
+def fetch_news_json(url):
+    # 发送GET请求获取JSON数据
+    response = requests.get(url)
+    if response.status_code == 200:
+        print(f"获取到数据{response.json()}----tools.py")
+        return response.json()
+    else:
+        print(f"请求失败，状态码：{response.status_code}")
+        return []
