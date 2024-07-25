@@ -6,6 +6,7 @@ import re# 导入正则表达式库，用于文本匹配和处理
 import time# 导入时间库，用于处理时间相关的功能
 import xml.etree.ElementTree as ET # 用于处理XML格式数据，如微信消息中的数据
 from queue import Empty # 从队列库导入Empty异常，用于处理队列空异常
+from multiprocessing import Queue
 from threading import Thread
 from sympy import content # 导入线程库，用于创建并运行线程
 import json
@@ -34,7 +35,7 @@ from job_mgmt import Job # 作业管理基类，`Robot`类继承自此
 from db import store_message, insert_roomid, store_summary # 导入 db.py 中的 store_message 函数,add_unique_roomids_to_roomid_table 函数
 from db import fetch_messages_from_last_some_hour,fetch_summary_from_db
 from utils.yaml_utils import update_yaml
-
+from tools import fetch_news_json
 __version__ = "39.0.10.1" # 版本号
 
 
@@ -53,6 +54,7 @@ class Robot(Job):#robot类继承自job类
         self.active = True # 状态标识，True为活跃，False为关闭
         self.model_type = None  # 初始化 model_type
         self.calltime = 10 # 初始化调用次数
+        self.newsQueue = Queue() # 初始化新闻队列
 
     # 根据聊天类型初始化对应的聊天模型
         if ChatType.is_in_chat_types(chat_type):
@@ -310,7 +312,7 @@ class Robot(Job):#robot类继承自job类
         for message_withwxid in messages_withwxid:
             message = {
                 "content": message_withwxid["content"],
-                "sender": self.wcf.get_info_by_wxid(message_withwxid["sender_id"]),# 将messages里的wxid替换成wx昵称
+                "sender":self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], msg.roomid),# 将messages里的wxid替换成wx昵称
                 "time": message_withwxid["time"]
             }
             messages.append(message)
@@ -512,7 +514,8 @@ class Robot(Job):#robot类继承自job类
             for message_withwxid in messages_withwxid:
                 message = {
                     "content": message_withwxid["content"],
-                    "sender": self.wcf.get_info_by_wxid(message_withwxid["sender_id"]),
+                    #"sender": self.wcf.get_info_by_wxid(message_withwxid["sender_id"]),
+                    "sender":self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver),
                     "time": message_withwxid["time"]
                 }
                 messages.append(message)
@@ -525,20 +528,22 @@ class Robot(Job):#robot类继承自job类
         """
         生成并保存聊天总结 目前只用深度求索
         """
-        receivers = []  # 指定总结群聊，可以根据需要进行修改
+        receivers = ["45647094112@chatroom","19046067886@chatroom"]  # 指定总结群聊，可以根据需要进行修改
+        if not receivers:print("没有指定进行总结的群聊")
         #切换到DeepSeek模型进行总结
         # self.chat = DeepSeek(self.config.DEEPSEEK)
         # self.model_type = 'DeepSeek-deepseek-chat'
         # self.LOG.info(f"已选择: {self.chat}")
         for receiver in receivers:
             messages_withwxid = fetch_messages_from_last_some_hour(receiver, time_hours)
+            if not messages_withwxid:continue # 如果没有聊天记录则跳过
             messages = []
             for message_withwxid in messages_withwxid:
-                if self.wcf.get_info_by_wxid(message_withwxid["sender_id"]).get("sender_id") is None:# 将messages里的wxid替换成wx昵称
+                sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver),
+                if not sender: # 将messages里的wxid替换成wx昵称
                     sender = message_withwxid["sender_id"]
                     self.LOG.info(f"{sender}昵称获取错误，已使用wxid替换")
                 else:
-                    sender = self.wcf.get_info_by_wxid(message_withwxid["sender_id"]).get("sender_id")
                     self.LOG.info(f"{sender}昵称获取成功啦")
                 message = {
                     "content": message_withwxid["content"],
@@ -557,15 +562,88 @@ class Robot(Job):#robot类继承自job类
         return []
     def sendDailySummary(self) -> None:# 以后会新增参数或者函数（sendWeeklySummary）
         '''发送每日总结并存入数据库'''
-        receivers = []  # 指定总结群聊，可以根据需要进行修改
+        receivers = ["19046067886@chatroom"]  # 指定总结群聊，可以根据需要进行修改
         for receiver in receivers:
             summaries = fetch_summary_from_db(receiver, 'partly')
             if summaries:
-                summary = self.chat.get_summary1(summaries, receiver)
+                summary = self.chat.get_summary_of_partly(summaries, receiver)
                 ts = int(datetime.now().timestamp())
                 store_summary(receiver, summary, ts, type='daily') # 存入每日数据库
                 self.sendTextMsg(summary, receiver) # 若需要@所有人，添加参数at_list == "notify@all"即可
                 self.LOG.info(f"已发送{receiver}的每日总结")
             else:
-                print("过去没有足够的消息来生成总结。", receiver)
+                print("过去没有足够的分段总结内容来生成总结。", receiver)
+        
+
+    def process_queue(self, url):
+        """若队列为空，则抓取消息；否则，每隔十秒输出消息"""
+        while True:
+            if self.newsQueue.empty():
+                print("News queue is empty, fetching data...")
+                try:
+                    news = fetch_news_json(url)
+                    if isinstance(news, list):
+                        for new in news:
+                            if isinstance(new, dict):
+                                required_keys = ['type', 'url', 'content', 'receiver']  # 假设这些是必需的键
+                                if all(key in new for key in required_keys):  # 确保字典包含所有必需的键
+                                    self.newsQueue.put(new)  # 加入队列
+                                    print(f"已加入队列：{new}")
+                                else:
+                                    print(f"忽略无效新闻：{new}，缺少必要键")
+                            else:
+                                print(f"忽略非字典项：{new}")
+                                # self.newsQueue.put(new) # 加入队列
+                    else:
+                        print(f"从URL:{url}获取的数据不是列表：{news}")
+                except Exception as e:
+                    print(f"Failed to fetch data: {e}")
+                    time.sleep(60)  # Wait for 1 minute before retrying
+            else:
+                self.sendTopNews()
+                print("Send news successfully!")
+                break
+
+
+        # self.sendTextMsg("测试", receiver)
+        # self.wcf.send_image("https://t7.baidu.com/it/u=4036010509,3445021118&fm=193&f=GIF", "45647094112@chatroom")
+
+
+
+    def sendTopNews(self) -> None:
+        '''轮询消息与发送'''
+        while self.newsQueue.empty() == False: # 如果队列不为空
+            new = self.newsQueue.get()
+            if new['type'] == "text":
+                print(f"发送{new['content']}")
+                self.sendTextMsg(new['content'], new['receiver'])
+            elif new['type'] == "image":
+                self.wcf.send_image(new['url'], new['receiver'])
+                print(f"发送{new['url']}图片")
+            else : print(f"消息类型错误{new['type']}")
+            time.sleep(10)
+        print("Queue has been empty")
+
+    def start_processing(self, url): # 在main函数调用该语句
+        """Start the processing thread."""
+        thread = Thread(target=self.process_queue, args=(url,))
+        thread.start()
+
+        
+        '''news消息示例
+        messages = [
+            {
+                "type": "text",
+                "url": "",
+                "content": "Hello, this is a text message!",
+                "receiver": "bot"
+            },
+            {
+                "type": "image",
+                "url": "https://example.com/path/to/image.jpg",
+                "content": "",
+                "receiver": "bot"
+            }
+        ]
+        '''
         

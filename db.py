@@ -287,15 +287,15 @@ def fetch_summary_from_db(roomid, type):
     current_time = int(datetime.now().timestamp())
     # one_day_ago = current_time - 3600*hour
     one_day_ago = current_time - 3600*24
-    # 执行SQL查询，获取特定roomid且ts大于tempts的所有summary数据
+    # 执行SQL查询，获取特定roomid且ts大于temp_ts的所有summary数据
     c.execute("SELECT summary FROM summary WHERE roomid = ? AND type = ? AND ts >= ?", (roomid, type, one_day_ago))
     
     # 获取所有查询结果
     
     summaries = c.fetchall()
-    
+    print(f"成功从数据库收集到{len(summaries)}条{type}总结")
     # 关闭数据库连接
     conn.close()
-    
+
     # 将结果转换为列表，因为fetchall()返回的是元组列表
     return [summary[0] for summary in summaries]
