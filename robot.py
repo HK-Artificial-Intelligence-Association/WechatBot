@@ -312,7 +312,8 @@ class Robot(Job):#robot类继承自job类
         for message_withwxid in messages_withwxid:
             message = {
                 "content": message_withwxid["content"],
-                "sender":self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], msg.roomid),# 将messages里的wxid替换成wx昵称
+                # 将messages里的wxid替换成wx昵称，get_info_by_wxid因不明原因出错，故改用get_alias_in_chatroom方法
+                "sender":self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], msg.roomid),
                 "time": message_withwxid["time"]
             }
             messages.append(message)
