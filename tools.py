@@ -1,5 +1,9 @@
 import re
 import requests
+import base64
+from PIL import Image
+import io
+import os
 
 # 去除content中的xml代码并提取关键信息
 '''在func的append之前调用
@@ -42,8 +46,48 @@ def fetch_news_json(url):
     # 发送GET请求获取JSON数据
     response = requests.get(url)
     if response.status_code == 200:
-        print(f"获取到数据{response.json()}----tools.py")
+        print(f"获取到数据{response.json()}")
         return response.json()
     else:
         print(f"请求失败，状态码：{response.status_code}")
         return []
+
+def base64_to_image(base64_str, filename):
+    output_path = f"images" # 保存图片的路径
+    try:
+        # 解码Base64字符串
+        image_data = base64.b64decode(base64_str)
+        
+        # 使用io.BytesIO将解码后的数据转换为文件对象
+        image_file = io.BytesIO(image_data)
+        
+        # 使用PIL打开图片
+        image = Image.open(image_file)
+
+        # 构建完整的文件路径
+        output_path = os.path.join("images", filename)
+        
+        # 创建目录如果不存在
+        os.makedirs("images", exist_ok=True)
+        
+        # 保存图片到本地
+        image.save(output_path)
+        
+        print(f"图片已保存到：{output_path}")
+    except Exception as e:
+        print(f"保存图片时出错：{e}")
+        return ''
+    return output_path
+
+def post_data_to_server(data, url)->bool:
+    # 发送 POST 请求
+    response = requests.post(url, json=data)
+
+    # 检查响应状态码
+    if response.status_code == 200:
+        print("数据成功发送并得到响应")
+        return True
+    else:
+        print(f"发送数据失败，状态码: {response.status_code}")
+        print(response.text)
+        return False

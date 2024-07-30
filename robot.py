@@ -35,7 +35,7 @@ from job_mgmt import Job # 作业管理基类，`Robot`类继承自此
 from db import store_message, insert_roomid, store_summary # 导入 db.py 中的 store_message 函数,add_unique_roomids_to_roomid_table 函数
 from db import fetch_messages_from_last_some_hour,fetch_summary_from_db
 from utils.yaml_utils import update_yaml
-from tools import fetch_news_json
+from tools import fetch_news_json, base64_to_image, post_data_to_server
 __version__ = "39.0.10.1" # 版本号
 
 
@@ -384,6 +384,7 @@ class Robot(Job):#robot类继承自job类
                 return
 
             if msg.is_at(self.wxid):  # 如果机器人被@
+                self.LOG.info(f"触发toAt{msg.content}")
                 self.toAt(msg)
             else:  # 其他群聊消息
                 self.toChengyu(msg)
@@ -529,7 +530,6 @@ class Robot(Job):#robot类继承自job类
                     self.LOG.info(f"{sender}昵称获取成功啦")
                 message = {
                     "content": message_withwxid["content"],
-                    #"sender": self.wcf.get_info_by_wxid(message_withwxid["sender_id"]),
                     "sender":sender,
                     "time": message_withwxid["time"]
                 }
@@ -578,6 +578,8 @@ class Robot(Job):#robot类继承自job类
     def sendDailySummary(self) -> None:# 以后会新增参数或者函数（sendWeeklySummary）
         '''发送每日总结并存入数据库'''
         receivers = []  # 指定总结群聊，可以根据需要进行修改
+        developers = []  # 指定调试群组，将总结内容发送至群组
+        if not receivers:print("没有指定进行总结的群聊")
         for receiver in receivers:
             summaries = fetch_summary_from_db(receiver, 'partly')
             if summaries:
@@ -586,6 +588,8 @@ class Robot(Job):#robot类继承自job类
                 store_summary(receiver, summary, ts, type='daily') # 存入每日数据库
                 self.sendTextMsg(summary, receiver) # 若需要@所有人，添加参数at_list == "notify@all"即可
                 self.LOG.info(f"已发送{receiver}的每日总结")
+                if developers and receiver=="19046067886@chatroom": # 发送调试消息
+                    self.sendTextMsg(summary, developers[0])
             else:
                 print("过去没有足够的分段总结内容来生成总结。", receiver)
         
@@ -600,7 +604,7 @@ class Robot(Job):#robot类继承自job类
                     if isinstance(news, list):
                         for new in news:
                             if isinstance(new, dict):
-                                required_keys = ['type', 'url', 'content', 'receiver']  # 假设这些是必需的键
+                                required_keys = ['type', 'content', 'filename', 'base64', 'receiver']  # 假设这些是必需的键
                                 if all(key in new for key in required_keys):  # 确保字典包含所有必需的键
                                     self.newsQueue.put(new)  # 加入队列
                                     print(f"已加入队列：{new}")
@@ -608,7 +612,6 @@ class Robot(Job):#robot类继承自job类
                                     print(f"忽略无效新闻：{new}，缺少必要键")
                             else:
                                 print(f"忽略非字典项：{new}")
-                                # self.newsQueue.put(new) # 加入队列
                     else:
                         print(f"从URL:{url}获取的数据不是列表：{news}")
                 except Exception as e:
@@ -633,30 +636,52 @@ class Robot(Job):#robot类继承自job类
                 print(f"发送{new['content']}")
                 self.sendTextMsg(new['content'], new['receiver'])
             elif new['type'] == "image":
-                self.wcf.send_image(new['url'], new['receiver'])
-                print(f"发送{new['url']}图片")
+                path=base64_to_image(new['base64'], new['filename']) # 将base64编码的图片保存为文件,并得到相对路径
+                abspath = os.path.abspath(path) # 转为绝对路径
+                self.wcf.send_image(abspath, new['receiver'])
+                print(f"发送{new['filename']}图片")
             else : print(f"消息类型错误{new['type']}")
             time.sleep(10)
         print("Queue has been empty")
 
-    def start_processing(self, url): # 在main函数调用该语句
+    def startProcessing(self, url): # 在main函数调用该语句
         """Start the processing thread."""
         thread = Thread(target=self.process_queue, args=(url,))
         thread.start()
 
-        
+    def postReceiverList(self, url):
+        not_friends = {
+            "fmessage": "朋友推荐消息",
+            "medianote": "语音记事本",
+            "floatbottle": "漂流瓶",
+            "filehelper": "文件传输助手",
+            "newsapp": "新闻",
+        }
+        friends = []
+        for cnt in self.wcf.get_contacts():
+            if (    
+                cnt["wxid"].startswith("gh_") or    # 公众号
+                cnt["wxid"] in not_friends.keys()   # 其他杂号
+            ):
+                continue
+            friends.append(cnt)
+        post_data_to_server(friends, url)
+
+
         '''news消息示例
         messages = [
             {
                 "type": "text",
-                "url": "",
                 "content": "Hello, this is a text message!",
+                "filename":""
+                "base64": ""
                 "receiver": "bot"
             },
             {
                 "type": "image",
-                "url": "https://example.com/path/to/image.jpg",
                 "content": "",
+                "filename":"thefilename.png"
+                "base64": "the code of base64"
                 "receiver": "bot"
             }
         ]
