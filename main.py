@@ -62,7 +62,7 @@ def main(chat_type: int):
     # robot.saveAutoSummary(time_hours = 4)
     robot.startProcessing(url='')# GET请求测试
     # robot.sendReport() # 发送图片测试
-
+    robot.onEveryTime("20:00", robot.periodic_statistics())
     # 每天 7 点发送天气预报
     #robot.onEveryTime("07:00", robot.sendWeatherReport)
     
