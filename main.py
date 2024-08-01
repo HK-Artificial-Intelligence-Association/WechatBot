@@ -27,6 +27,8 @@ def main(chat_type: int):
     wcf = Wcf(debug=True)# 创建微信通信接口实例，开启调试模式
 
     def handler(sig, frame):# 定义信号处理函数
+        print("u had pressed Ctrl+C, now exit...")
+        robot.stopFlag=True
         wcf.cleanup()  # 退出前清理环境
         exit(0)
 
@@ -46,21 +48,21 @@ def main(chat_type: int):
     # 注意onEveryTime函数的参数是可调用对象，即函数或方法。
     
     # 每天8点收集23-8群聊摘要
-    robot.onEveryTime("08:00", robot.saveAutoSummary,time_hours=9)
+    robot.onEveryTime("08:00", robot.saveAutoSummary, time_hours=9)
     # 每天12点收集8-12群聊摘要
-    robot.onEveryTime("12:00", robot.saveAutoSummary,time_hours=4)
+    robot.onEveryTime("12:00", robot.saveAutoSummary, time_hours=4)
     # 每天17点收集12-17群聊摘要
-    robot.onEveryTime("17:00", robot.saveAutoSummary,time_hours=5)
+    robot.onEveryTime("19:00", robot.saveAutoSummary, time_hours=7)
     # 每天23点收集17-23群聊摘要
-    robot.onEveryTime("23:00", robot.saveAutoSummary,time_hours=6)
+    robot.onEveryTime("23:00", robot.saveAutoSummary, time_hours=4)
     # 每天24点发送每日聊天总结
-    robot.onEveryTime("19:30", robot.sendDailySummary)
+    robot.onEveryTime("20:00", robot.sendDailySummary)
     # 测试
+    # robot.postReceiverList(url='-----------------')# POST请求测试
     # robot.saveAutoSummary(time_hours = 4)
-    # robot.start_processing(url='http://127.0.0.1:5000/data.json')
-    
+    robot.startProcessing(url='')# GET请求测试
     # robot.sendReport() # 发送图片测试
-    # robot.sendDailySummary()
+
     # 每天 7 点发送天气预报
     #robot.onEveryTime("07:00", robot.sendWeatherReport)
     
