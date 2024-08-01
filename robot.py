@@ -688,3 +688,28 @@ class Robot(Job):#robot类继承自job类
         ]
         '''
         
+    def periodic_statistics(self):
+        '''定时统计聊天信息'''
+        receivers = []
+        for receiver in receivers:
+            leaderboard = collect_stats_in_room(receiver, type="daily")
+            if leaderboard:
+                msgCount = 0
+                # current_time = int(datetime.now().timestamp())
+                stat=["📊群聊数据统计v0.1\n",
+                    f"🕰时间段：还没写嘿嘿\n",
+                    f"👥发言人数：{len(leaderboard)}\n",
+                    f"💬消息总数：{msgCount}\n",
+                    f"🏆发言排行榜\n",
+                ]
+
+                for i, ld in enumerate(leaderboard):
+                    msgCount += ld[1] # 统计消息总数
+                    username=self.wcf.get_alias_in_chatroom(ld[0], receiver) # 将wxid转为群昵称
+                    stat.append(f"    {i+1}. [{username}]：{ld[1]}条\n")
+                stat[3]=f"💬消息总数：{msgCount}\n" # 更新消息总数
+                stat.append("🚀🚀🚀")
+            else: print(f"最近没有发言记录")
+            result = ''.join(stat)
+            self.sendTextMsg(result, receiver)
+        return []
