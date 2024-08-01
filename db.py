@@ -301,7 +301,8 @@ def fetch_summary_from_db(roomid, type):
     return [summary[0] for summary in summaries]
 
 
-def get_username_count(roomid, type="daily"):
+def collect_stats_in_room(roomid, type="daily"):
+    '''获取指定房间ID和时间段的用户发言次数'''
     # 连接到数据库
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()

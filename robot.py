@@ -33,7 +33,7 @@ from configuration import Config # 配置管理模块
 from constants import ChatType # 常量定义模块，定义了聊天类型
 from job_mgmt import Job # 作业管理基类，`Robot`类继承自此
 from db import store_message, insert_roomid, store_summary # 导入 db.py 中的 store_message 函数,add_unique_roomids_to_roomid_table 函数
-from db import fetch_messages_from_last_some_hour,fetch_summary_from_db
+from db import fetch_messages_from_last_some_hour, fetch_summary_from_db, collect_stats_in_room
 from utils.yaml_utils import update_yaml
 from tools import fetch_news_json, base64_to_image, post_data_to_server
 __version__ = "39.0.10.1" # 版本号
@@ -251,6 +251,8 @@ class Robot(Job):#robot类继承自job类
                 self.handle_summary_request(msg)
             elif "/change" in content:
                 self.change_model(msg)
+            elif "@" in content and "/getid" in content:
+                self.handle_get_id_request(msg)
             elif self.active:
                 # 如果机器人处于活跃状态，则处理其他消息
                 self.handle_other_messages(msg)
@@ -713,3 +715,9 @@ class Robot(Job):#robot类继承自job类
             result = ''.join(stat)
             self.sendTextMsg(result, receiver)
         return []
+
+    def handle_get_id_request(self, msg: WxMsg):
+        if msg.from_group:
+            self.sendTextMsg(f"您所在的群ID：\n{msg.roomid}\n您的微信id：\n{msg.sender}\n", msg.roomid, msg.sender)
+        else:
+            self.sendTextMsg(f"您的微信id：\n{msg.sender}\n", msg.sender)
