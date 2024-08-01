@@ -55,6 +55,7 @@ class Robot(Job):#robot类继承自job类
         self.model_type = None  # 初始化 model_type
         self.calltime = 10 # 初始化调用次数
         self.newsQueue = Queue() # 初始化新闻队列
+        self.stopFlag = False
 
     # 根据聊天类型初始化对应的聊天模型
         if ChatType.is_in_chat_types(chat_type):
@@ -588,7 +589,7 @@ class Robot(Job):#robot类继承自job类
                 store_summary(receiver, summary, ts, type='daily') # 存入每日数据库
                 self.sendTextMsg(summary, receiver) # 若需要@所有人，添加参数at_list == "notify@all"即可
                 self.LOG.info(f"已发送{receiver}的每日总结")
-                if developers and receiver=="19046067886@chatroom": # 发送调试消息
+                if developers: # 发送调试消息
                     self.sendTextMsg(summary, developers[0])
             else:
                 print("过去没有足够的分段总结内容来生成总结。", receiver)
@@ -596,7 +597,7 @@ class Robot(Job):#robot类继承自job类
 
     def process_queue(self, url):
         """若队列为空，则抓取消息；否则，每隔十秒输出消息"""
-        while True:
+        while not self.stopFlag:
             if self.newsQueue.empty():
                 print("News queue is empty, fetching data...")
                 try:
@@ -604,7 +605,7 @@ class Robot(Job):#robot类继承自job类
                     if isinstance(news, list):
                         for new in news:
                             if isinstance(new, dict):
-                                required_keys = ['type', 'content', 'filename', 'base64', 'receiver']  # 假设这些是必需的键
+                                required_keys = ['type', 'content', 'base64', 'receiver', 'url']  # 假设这些是必需的键
                                 if all(key in new for key in required_keys):  # 确保字典包含所有必需的键
                                     self.newsQueue.put(new)  # 加入队列
                                     print(f"已加入队列：{new}")
@@ -616,11 +617,10 @@ class Robot(Job):#robot类继承自job类
                         print(f"从URL:{url}获取的数据不是列表：{news}")
                 except Exception as e:
                     print(f"Failed to fetch data: {e}")
-                    time.sleep(60)  # Wait for 1 minute before retrying
+                time.sleep(60)  # Wait for 1 minute before retrying
             else:
                 self.sendTopNews()
                 print("Send news successfully!")
-                break
 
 
         # self.sendTextMsg("测试", receiver)
@@ -636,10 +636,10 @@ class Robot(Job):#robot类继承自job类
                 print(f"发送{new['content']}")
                 self.sendTextMsg(new['content'], new['receiver'])
             elif new['type'] == "image":
-                path=base64_to_image(new['base64'], new['filename']) # 将base64编码的图片保存为文件,并得到相对路径
+                path=base64_to_image(new['base64']) # 将base64编码的图片保存为文件,并得到相对路径
                 abspath = os.path.abspath(path) # 转为绝对路径
                 self.wcf.send_image(abspath, new['receiver'])
-                print(f"发送{new['filename']}图片")
+                print(f"成功发送图片")
             else : print(f"消息类型错误{new['type']}")
             time.sleep(10)
         print("Queue has been empty")
@@ -659,12 +659,13 @@ class Robot(Job):#robot类继承自job类
         }
         friends = []
         for cnt in self.wcf.get_contacts():
-            if (    
+            if (
                 cnt["wxid"].startswith("gh_") or    # 公众号
                 cnt["wxid"] in not_friends.keys()   # 其他杂号
             ):
                 continue
             friends.append(cnt)
+
         post_data_to_server(friends, url)
 
 
