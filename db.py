@@ -299,3 +299,38 @@ def fetch_summary_from_db(roomid, type):
 
     # 将结果转换为列表，因为fetchall()返回的是元组列表
     return [summary[0] for summary in summaries]
+
+
+def get_username_count(roomid, type="daily"):
+    # 连接到数据库
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    if type == "daily":
+        hour = 24
+    elif type == "weekly":
+        hour = 24 * 7
+    elif type == "monthly":
+        hour = 24 * 30
+    else:
+        raise ValueError("Invalid type. Valid types are 'daily', 'weekly', or 'monthly'.")
+    current_time = int(datetime.now().timestamp())
+    before_time = current_time - 3600 * hour
+
+    # 执行 SQL 查询
+    query = """
+    SELECT sender, COUNT(*) as count
+    FROM messages
+    WHERE roomid = ? AND ts >= ?
+    GROUP BY sender
+    ORDER BY count DESC
+    """
+    cursor.execute(query, (roomid, before_time))
+    
+    # 获取查询结果
+    result = cursor.fetchall()
+    
+    # 关闭数据库连接
+    conn.close()
+    
+    return result
