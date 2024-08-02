@@ -276,19 +276,26 @@ def fetch_roomids_from_db():
     return room_ids
 
 def fetch_summary_from_db(roomid, type):
-    '''从数据库收集指定类型的定时总结'''
+    '''从数据库收集指定类型的定时总结
+
+    parameter:
+        roomid: 要获取总结的房间ID
+        type: 要获取总结的类型，可选值为'partly', 'daily', 'weekly', 'monthly'
+    '''
     # 连接到SQLite数据库
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-    # if type=='daily':hour=24
-    # elif type=='weekly':hour=24*7
-    # elif type=='monthly':hour=24*30
+    typelist=['partly','daily','weekly','monthly']
+    type2=typelist[(typelist.index(type)+1) % len(typelist)] # 防止下标越界
+    if type2=='daily':hour=24
+    elif type2=='weekly':hour=24*7
+    elif type2=='monthly':hour=24*31
+    elif type2=='partly':hour=24*365
     # 还有else的情况 以及总结过程中的时间问题，月总结是否需要日期？
     current_time = int(datetime.now().timestamp())
-    # one_day_ago = current_time - 3600*hour
-    one_day_ago = current_time - 3600*24
+    before_time = current_time - 3600*hour
     # 执行SQL查询，获取特定roomid且ts大于temp_ts的所有summary数据
-    c.execute("SELECT summary FROM summary WHERE roomid = ? AND type = ? AND ts >= ?", (roomid, type, one_day_ago))
+    c.execute("SELECT summary FROM summary WHERE roomid = ? AND type = ? AND ts >= ?", (roomid, type, before_time))
     
     # 获取所有查询结果
     
