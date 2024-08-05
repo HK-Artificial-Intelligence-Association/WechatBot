@@ -33,7 +33,7 @@ from configuration import Config # 配置管理模块
 from constants import ChatType # 常量定义模块，定义了聊天类型
 from job_mgmt import Job # 作业管理基类，`Robot`类继承自此
 from db import store_message, insert_roomid, store_summary # 导入 db.py 中的 store_message 函数,add_unique_roomids_to_roomid_table 函数
-from db import fetch_messages_from_last_some_hour, fetch_summary_from_db, collect_stats_in_room
+from db import fetch_messages_from_last_some_hour, fetch_summary_from_db, collect_stats_in_room, fetch_permission_from_db, fetch_roomid_list
 from utils.yaml_utils import update_yaml
 from tools import fetch_news_json, base64_to_image, post_data_to_server
 __version__ = "39.0.10.1" # 版本号
@@ -56,6 +56,7 @@ class Robot(Job):#robot类继承自job类
         self.calltime = 10 # 初始化调用次数
         self.newsQueue = Queue() # 初始化新闻队列
         self.stopFlag = False
+        self.permissions = fetch_permission_from_db()
 
     # 根据聊天类型初始化对应的聊天模型
         if ChatType.is_in_chat_types(chat_type):
@@ -243,20 +244,21 @@ class Robot(Job):#robot类继承自job类
             content = msg.content.strip()
             # print(content)
             # 检查是否是控制命令或是否包含“总结”关键字
-            if content == "/sun":
-                self.handle_open(msg)
-            elif content == "/nus":
-                self.handle_close(msg)
-            elif "@" in content and "总结" in content and msg_dict['type'] != 49:
+
+            if "@" in content and "总结" in content and msg_dict['type'] != 49 and self.hasPermission(msg.roomid, "callSummary"):
                 self.handle_summary_request(msg)
-            elif "/change" in content:
-                self.change_model(msg)
             elif "@" in content and "/getid" in content:
                 self.handle_get_id_request(msg)
-            elif self.active:
-                # 如果机器人处于活跃状态，则处理其他消息
-                self.handle_other_messages(msg)
 
+            if self.hasPermission(msg.roomid, "admin") or self.hasPermission(msg.sender, "admin"):# 管理权限
+                if content == "/sun":
+                    self.handle_open(msg)
+                elif content == "/nus":
+                    self.handle_close(msg)
+                elif "/change" in content:
+                    self.change_model(msg)
+            elif self.active: # 如果机器人处于活跃状态，则处理其他消息
+                self.handle_other_messages(msg)
 
     def change_model(self, msg):
         content = msg.content
@@ -388,13 +390,13 @@ class Robot(Job):#robot类继承自job类
 
             if msg.is_at(self.wxid):  # 如果机器人被@
                 self.LOG.info(f"触发toAt{msg.content}")
-                self.toAt(msg)
+                if self.hasPermission(msg.roomid,"chat"): self.toAt(msg) # 聊天权限判断
             else:  # 其他群聊消息
                 self.toChengyu(msg)
 
             return  # 处理完群聊信息后，跳出方法
 
-    # 处理非群聊信息
+        # 处理非群聊信息
         if msg.type == 37:  # 好友请求
             self.autoAcceptFriendRequest(msg)
 
@@ -407,7 +409,7 @@ class Robot(Job):#robot类继承自job类
                     self.config.reload()
                     self.LOG.info("已更新")
             else:
-                self.toChitchat(msg)  # 闲聊
+                if self.hasPermission(msg.sender, "chat"): self.toChitchat(msg)  # 闲聊
 
     
     def onMsg(self, msg: WxMsg) -> int:
@@ -518,7 +520,7 @@ class Robot(Job):#robot类继承自job类
     
     def sendAutoSummary(self,time_hours=2) -> None:
         """自动总结，默认总结2小时的聊天记录"""
-        receivers = []  # 指定接收者，可以根据需要进行修改
+        receivers = fetch_roomid_list("autoSummary")  # 指定接收者，可以根据需要进行修改
         for receiver in receivers:
             messages_withwxid = fetch_messages_from_last_some_hour(roomid = receiver, time_hours=time_hours)
             # 将messages里的wxid替换成wx昵称
@@ -546,8 +548,8 @@ class Robot(Job):#robot类继承自job类
         """
         生成并保存聊天总结 目前只用深度求索
         """
-        receivers = []  # 指定总结群聊，可以根据需要进行修改
-        if not receivers:print("没有指定进行总结的群聊")
+        receivers = fetch_roomid_list("autoSummary")  # 指定总结群聊，可以根据需要进行修改
+        if not receivers: print("没有指定进行总结的群聊")
         #切换到DeepSeek模型进行总结
         # self.chat = DeepSeek(self.config.DEEPSEEK)
         # self.model_type = 'DeepSeek-deepseek-chat'
@@ -580,8 +582,8 @@ class Robot(Job):#robot类继承自job类
         return []
     def sendDailySummary(self) -> None:# 以后会新增参数或者函数（sendWeeklySummary）
         '''发送每日总结并存入数据库'''
-        receivers = []  # 指定总结群聊，可以根据需要进行修改
-        developers = []  # 指定调试群组，将总结内容发送至群组
+        receivers = fetch_roomid_list("autoSummary")  # 指定总结群聊，可以根据需要进行修改
+        developers = fetch_roomid_list("admin")  # 指定调试群组，将总结内容发送至群组
         if not receivers:print("没有指定进行总结的群聊")
         for receiver in receivers:
             summaries = fetch_summary_from_db(receiver, 'partly')
@@ -718,6 +720,36 @@ class Robot(Job):#robot类继承自job类
 
     def handle_get_id_request(self, msg: WxMsg):
         if msg.from_group:
-            self.sendTextMsg(f"您所在的群ID：\n{msg.roomid}\n您的微信id：\n{msg.sender}\n", msg.roomid, msg.sender)
+            self.sendTextMsg(f"您所在的群ID：\n{msg.roomid}\n您的微信id：\n{msg.sender}", msg.roomid, msg.sender)
         else:
-            self.sendTextMsg(f"您的微信id：\n{msg.sender}\n", msg.sender)
+            self.sendTextMsg(f"您的微信id：\n{msg.sender}", msg.sender)
+
+    def hasPermission(self, roomid, permission_type = "admin"):
+        """
+        判断指定房间是否具有某种权限
+
+        参数:
+            all_permissions (dict): 包含所有房间权限信息的字典
+            roomid (str): 要检查权限的房间ID
+            permission_type (str): 要检查的权限类型 (例如 'admin', 'autoSummary', 'callSummary', 'periodStat')
+
+        返回:
+            bool: 如果房间具有指定的权限, 则返回 True, 否则返回 False
+        """
+        # 检查指定的 roomid 是否存在于 all_permissions 字典中
+        if roomid not in self.permissions:
+            return False
+        
+        # 获取指定房间的权限字典
+        room_permissions = self.permissions[roomid]
+        # 若为管理员，则返回 True
+        if room_permissions.get("admin"):
+            print(f"房间或用户{roomid}未拥有{permission_type}权限")
+            return True
+        # 检查指定的权限类型是否存在并且为 True
+        if room_permissions.get(permission_type, False):
+            return True
+        else: 
+            print(f"房间{roomid}未拥有{permission_type}权限")
+            return False
+
