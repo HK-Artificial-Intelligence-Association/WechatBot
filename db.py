@@ -58,6 +58,20 @@ def create_database():
     )
     ''')
 
+    """
+    创建 permission 表
+    """
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS permission (
+        roomid TEXT PRIMARY KEY,
+        admin BOOLEAN DEFAULT FALSE,
+        chat BOOLEAN DEFAULT FALSE,
+        autoSummary BOOLEAN DEFAULT FALSE,
+        callSummary BOOLEAN DEFAULT FALSE,
+        periodStat BOOLEAN DEFAULT FALSE
+    )
+    ''')
+
     conn.commit()
     conn.close()
 
@@ -342,3 +356,46 @@ def collect_stats_in_room(roomid, type="daily"):
     conn.close()
     
     return result
+
+
+def fetch_permission_from_db():
+    '''从数据库中获取房间权限'''
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT roomid, admin, chat, autoSummary, callSummary, periodStat FROM permission")
+
+    results = cursor.fetchall()
+    
+    permissions = {}
+    for result in results:
+        permissions[result[0]] = {
+            'admin': bool(result[1]),
+            'chat': bool(result[2]),
+            'autoSummary': bool(result[3]),
+            'callSummary': bool(result[4]),
+            'periodStat': bool(result[5])
+        }
+    
+    conn.close()
+    return permissions
+
+
+def fetch_roomid_list(type):
+    '''输出具有指定权限的房间ID列表'''
+        # 连接到SQLite数据库
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+
+    # 执行SQL查询，获取具有权限的roomid
+    c.execute(f"SELECT roomid FROM permission WHERE {type} = 1 AND roomid NOT LIKE 'wxid%'")
+    # 获取所有查询结果
+    
+    roomids = c.fetchall()
+    roomids = [row[0] for row in roomids]
+    print(f"成功从数据库收集到{len(roomids)}个具有{type}权限的roomid")
+    print(roomids)
+    # 关闭数据库连接
+    conn.close()
+
+    # 将结果转换为列表，因为fetchall()返回的是元组列表
+    return roomids
