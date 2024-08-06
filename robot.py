@@ -612,7 +612,17 @@ class Robot(Job):#robot类继承自job类
                                 required_keys = ['type', 'content', 'base64', 'receiver', 'url']  # 假设这些是必需的键
                                 if all(key in new for key in required_keys):  # 确保字典包含所有必需的键
                                     self.newsQueue.put(new)  # 加入队列
-                                    print(f"已加入队列：{new}")
+                                    if new["base64"]:
+                                        shortnew = {
+                                            "type": new["type"],
+                                            "content": new["content"],
+                                            "base64": new["base64"][:10],
+                                            "receiver": new["receiver"],
+                                            "url": new["url"]
+                                        }# 创建一个包含部分数据的字典
+                                    else: shortnew = new
+                                    print(f"已将图片消息加入队列：{shortnew}")
+                                    self.LOG.info(f"已将图片消息加入队列：{shortnew}")
                                 else:
                                     print(f"忽略无效新闻：{new}，缺少必要键")
                             else:
