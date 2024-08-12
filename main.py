@@ -28,7 +28,7 @@ def main(chat_type: int):
 
     def handler(sig, frame):# 定义信号处理函数
         print("u had pressed Ctrl+C, now exit...")
-        robot.stopFlag=True
+        robot.stopEvent.set()
         wcf.cleanup()  # 退出前清理环境
         exit(0)
 
