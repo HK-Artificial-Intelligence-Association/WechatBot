@@ -7,7 +7,7 @@ import time# 导入时间库，用于处理时间相关的功能
 import xml.etree.ElementTree as ET # 用于处理XML格式数据，如微信消息中的数据
 from queue import Empty # 从队列库导入Empty异常，用于处理队列空异常
 from multiprocessing import Queue
-from threading import Thread
+import threading
 from sympy import content # 导入线程库，用于创建并运行线程
 import json
 import os
@@ -55,7 +55,7 @@ class Robot(Job):#robot类继承自job类
         self.model_type = None  # 初始化 model_type
         self.calltime = 10 # 初始化调用次数
         self.newsQueue = Queue() # 初始化新闻队列
-        self.stopFlag = False
+        self.stopEvent = threading.Event()
         self.permissions = fetch_permission_from_db()
 
     # 根据聊天类型初始化对应的聊天模型
@@ -441,7 +441,7 @@ class Robot(Job):#robot类继承自job类
                     self.LOG.error(f"Receiving message error: {e}")
 
         self.wcf.enable_receiving_msg()# 启动Wcf的消息接收功能
-        Thread(target=innerProcessMsg, name="GetMessage", args=(self.wcf,), daemon=True).start()
+        threading.Thread(target=innerProcessMsg, name="GetMessage", args=(self.wcf,), daemon=True).start()
 
     def sendTextMsg(self, msg: str, receiver: str, at_list: str = "") -> None:
         """ 发送消息
@@ -605,7 +605,7 @@ class Robot(Job):#robot类继承自job类
 
     def process_queue(self, url):
         """若队列为空，则抓取消息；否则，每隔十秒输出消息"""
-        while not self.stopFlag:
+        while not self.stopEvent.is_set():
             if self.newsQueue.empty():
                 print("News queue is empty, fetching data...")
                 try:
@@ -635,7 +635,7 @@ class Robot(Job):#robot类继承自job类
                         print(f"从URL:{url}获取的数据不是列表：{news}")
                 except Exception as e:
                     print(f"Failed to fetch data: {e}")
-                time.sleep(60)  # Wait for 1 minute before retrying
+                self.stopEvent.wait(timeout=60)  # 等待60秒或直到事件被设置
             else:
                 self.sendTopNews()
                 print("Send news successfully!")
@@ -664,7 +664,7 @@ class Robot(Job):#robot类继承自job类
 
     def startProcessing(self, url): # 在main函数调用该语句
         """Start the processing thread."""
-        thread = Thread(target=self.process_queue, args=(url,))
+        thread = threading.Thread(target=self.process_queue, args=(url,))
         thread.start()
 
     def postReceiverList(self, url):
