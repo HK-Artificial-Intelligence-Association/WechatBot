@@ -768,8 +768,9 @@ class Robot(Job):#robot类继承自job类
         room_permissions = self.permissions[roomid]
         # 若为管理员，则返回 True
         if room_permissions.get("admin"):
-            print(f"房间或用户{roomid}未拥有{permission_type}权限")
             return True
+        else:
+            print(f"房间或用户{roomid}未拥有admin权限")
         # 检查指定的权限类型是否存在并且为 True
         if room_permissions.get(permission_type, False):
             return True
