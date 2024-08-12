@@ -264,14 +264,15 @@ class Robot(Job):#robot类继承自job类
         content = msg.content
         print("消息内容:", content)  # 打印消息内容以调试
 
-            # 获取最后一位字符并尝试将其转换为数字
-        try:
-            chat_type = int(content[-1])
+            # 尝试获取消息最后的数字
+        match = re.search(r'\d+$', content) # 正则表达式 \d+$ 来匹配字符串末尾的连续数字。\d+ 表示一个或多个数字，$ 表示字符串的末尾
+        if match:
+            chat_type = int(match.group())
             print("提取的数字是:", chat_type)
-        except ValueError:
+        else:
             chat_type = None
             print("没有找到匹配的数字")
-    
+
         if chat_type and ChatType.is_in_chat_types(chat_type):
             if chat_type == ChatType.CHATGPT.value and ChatGPT.value_check(self.config.CHATGPT):
                 self.chat = ChatGPT(self.config.CHATGPT)  
