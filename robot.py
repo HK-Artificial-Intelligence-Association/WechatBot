@@ -245,19 +245,22 @@ class Robot(Job):#robot类继承自job类
             # print(content)
             # 检查是否是控制命令或是否包含“总结”关键字
 
-            if "@" in content and "总结" in content and msg_dict['type'] != 49 and self.hasPermission(msg.roomid, "callSummary"):
-                self.handle_summary_request(msg)
+            if content == "/sun":
+                if self.hasPermission(msg.roomid, "admin") or self.hasPermission(msg.sender, "admin"): # 验证管理权限
+                    self.handle_open(msg)
+            elif content == "/nus":
+                if self.hasPermission(msg.roomid, "admin") or self.hasPermission(msg.sender, "admin"):
+                    self.handle_close(msg)
+            elif "@" in content and "/总结" in content and msg_dict['type'] != 49:
+                if self.hasPermission(msg.roomid, "callSummary"):
+                    self.handle_summary_request(msg)
+            elif "/change" in content:
+                if self.hasPermission(msg.roomid, "admin") or self.hasPermission(msg.sender, "admin"):
+                    self.change_model(msg)
             elif "@" in content and "/getid" in content:
                 self.handle_get_id_request(msg)
-
-            if self.hasPermission(msg.roomid, "admin") or self.hasPermission(msg.sender, "admin"):# 管理权限
-                if content == "/sun":
-                    self.handle_open(msg)
-                elif content == "/nus":
-                    self.handle_close(msg)
-                elif "/change" in content:
-                    self.change_model(msg)
-            elif self.active: # 如果机器人处于活跃状态，则处理其他消息
+            elif self.active:
+                # 如果机器人处于活跃状态，则处理其他消息
                 self.handle_other_messages(msg)
 
     def change_model(self, msg):
