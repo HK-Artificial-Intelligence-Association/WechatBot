@@ -1,0 +1,58 @@
+name: Merge Bot
+
+on:
+  pull_request:
+    types:
+      - labeled
+      - ready_for_review
+      - review_request_removed
+      - review_requested
+      - synchronize
+      - unlabeled
+  pull_request_review:
+    types:
+      - dismissed
+      - submitted
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    name: Merge
+    permissions:
+          contents: write
+          pull-requests: write
+          checks: read
+    steps:
+    - uses: actions/checkout@v4
+    - name: Integration check
+      uses: squalrus/merge-bot@v0.4.5
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        test: false # 如果想 Debug ，将该项改为 True
+        reviewers: false
+        labels: waitForMerge,readyForMerge
+        blocking_labels: do not merge
+        checks_enabled: true
+        method: merge
+        delete_source_branch: false
+  rebase:
+    needs: merge
+    runs-on: ubuntu-latest
+    name: rebase
+    permissions:
+          contents: write
+          pull-requests: write
+          checks: read
+    steps:
+    - uses: actions/checkout@v4
+    - name: Integration check
+      uses: squalrus/merge-bot@v0.4.5
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        test: false
+        reviewers: false
+        labels: waitForMerge,readyForRebase 
+        blocking_labels: do not merge
+        checks_enabled: true
+        method: rebase
+        delete_source_branch: false
