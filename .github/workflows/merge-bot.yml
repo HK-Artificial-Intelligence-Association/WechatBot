@@ -36,6 +36,7 @@ jobs:
         method: merge
         delete_source_branch: false
   rebase:
+    needs: merge
     runs-on: ubuntu-latest
     name: rebase
     permissions:
