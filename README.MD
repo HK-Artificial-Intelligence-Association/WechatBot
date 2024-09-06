@@ -1,5 +1,11 @@
 # WeChatRobot
-一个基于 [WeChatFerry](https://github.com/lich0821/WeChatFerry) 的微信机器人示例。
+一个基于 [WeChatFerry](https://github.com/lich0821/WeChatRobot) 进行优化与更新的微信机器人。
+
+[已进行的优化]
+ - 聊天数据统计
+ - 定时聊天总结
+ - 用户调用总结
+ - 聊天权限管理
 
 |[📖 文档](https://wechatferry.readthedocs.io/)|[📺 视频教程](https://mp.weixin.qq.com/s/APdjGyZ2hllXxyG_sNCfXQ)|[🙋 FAQ](https://mp.weixin.qq.com/s/bdPNrbJYoXhezCzHMqLoEw)|[🚨【微信机器人】沙雕行为合集](https://mp.weixin.qq.com/s/mc8O5iuhy46X4Bgqs80E8g)|
 |:-:|:-:|:-:|:-:|
@@ -141,6 +147,15 @@ bard: # -----bard配置这行不填-----
   # I want you to act as a spoken English teacher and improver. I will speak to you in English and you will reply to me in English to practice my spoken English. I want you to keep your reply neat, limiting the reply to 100 words. I want you to strictly correct my grammar mistakes, typos, and factual errors. I want you to ask me a question in your reply. Now let's start practicing, you could ask me a question first. Remember, I want you to strictly correct my grammar mistakes, typos, and factual errors.
   prompt: You am a large language model, trained by Google.
 ```
+
+#### 设置定时总结
+```
+robot.onEveryTime("19:00", robot.saveAutoSummary, time_hours=7)
+```
+
+#### 权限管理
+
+可以通过`/getid`命令得到wxid以及roomid，随后在数据库的permission表中设置权限。
 
 ## HTTP
 如需要使用 HTTP 接口，请参考:
