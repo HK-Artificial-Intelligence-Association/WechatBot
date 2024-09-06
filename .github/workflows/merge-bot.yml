@@ -30,7 +30,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         test: true # 如果想 Debug ，将该项改为 True
         reviewers: false
-        labels: waitForMerge ,readyForMerge
+        labels: waitForMerge,readyForMerge
         blocking_labels: do not merge
         checks_enabled: true
         method: merge
@@ -50,7 +50,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         test: false
         reviewers: false
-        labels: waitForMerge,readyForRebase  
+        labels: waitForMerge,readyForRebase 
         blocking_labels: do not merge
         checks_enabled: true
         method: rebase
