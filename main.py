@@ -51,7 +51,7 @@ def main(chat_type: int):
     robot.onEveryTime("08:00", robot.saveAutoSummary, time_hours=9)
     # 每天12点收集8-12群聊摘要
     robot.onEveryTime("12:00", robot.saveAutoSummary, time_hours=4)
-    # 每天17点收集12-17群聊摘要
+    # 每天19点收集12-17群聊摘要
     robot.onEveryTime("19:00", robot.saveAutoSummary, time_hours=7)
     # 每天23点收集17-23群聊摘要
     robot.onEveryTime("23:00", robot.saveAutoSummary, time_hours=4)
