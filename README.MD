@@ -1,30 +1,34 @@
 # WeChatRobot
 
-一个基于 [WeChatFerry](https://github.com/lich0821/WeChatRobot) 进行优化与更新的微信机器人。
+基于 [WeChatFerry](https://github.com/lich0821/WeChatRobot) 与 [原版WeCharRobot](https://github.com/lich0821/WeChatRobot) 优化与更新后的微信机器人。添加了不少原版机器人不具有的功能。
 
-#### **已进行的优化**
+>  ❗ 关于为什么原仓库的 Commit 记录没了，是因为当时写这个项目的姑娘不太会操作 Git 于是便将 `.git` 仓库清了重置了~ 后边在新的记录上缝缝改改一去不返，实在是抱歉。因此，本仓库的 init commit 的内容基本上都来源于原仓库的贡献者（已列于下方 Contributors）。
+
+#### 新增的功能
 
 - 聊天数据统计
+
+![聊天数据统计](./doc/periodstatistic.png)
+
 - 定时聊天总结
-- 用户调用总结
-- 聊天权限管理
 
-| [📖 文档](https://wechatferry.readthedocs.io/) | [📺 视频教程](https://mp.weixin.qq.com/s/APdjGyZ2hllXxyG_sNCfXQ) | [🙋 FAQ](https://mp.weixin.qq.com/s/bdPNrbJYoXhezCzHMqLoEw) | [🚨【微信机器人】沙雕行为合集](https://mp.weixin.qq.com/s/mc8O5iuhy46X4Bgqs80E8g) |
-| :-----------------------------------------: | :-----------------------------------------------------------: | :------------------------------------------------------: | :----------------------------------------------------------------------------: |
+![定时聊天总结](./doc/conversationsummary.png)
 
-| ![碲矿](https://s2.loli.net/2023/09/25/fub5VAPSa8srwyM.jpg) | ![赞赏](https://s2.loli.net/2023/09/25/gkh9uWZVOxzNPAX.jpg) |
-| :-------------------------------------------------------: | :-------------------------------------------------------: |
-|                 后台回复 `WCF` 加群交流                 |                      如果你觉得有用                      |
+- 支持用户主动调用对聊天内容的总结
 
-## Quick Start
+![help](./doc/help.png)
 
-0. 遇到问题先看看上面的**文档、教程和 FAQ。**
+- 基于 SQLite3 的聊天权限管理
+
+## 安装步骤
+
+0. 遇到问题可以看 **原仓库的[文档](https://wechatferry.readthedocs.io/zh/latest/)、[教程](https://mp.weixin.qq.com/s/APdjGyZ2hllXxyG_sNCfXQ)和 [FAQ](https://mp.weixin.qq.com/s/bdPNrbJYoXhezCzHMqLoEw)。**
 
    - 按照步骤来，版本保持一致，少走弯路。
    - 按照步骤来，版本保持一致，少走弯路。
    - 按照步骤来，版本保持一致，少走弯路。
 1. 安装 Python>=3.9（建议3.10），例如 [3.10.11](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe)
-2. 安装微信 `3.9.10.27`(wcf版本v39.2.x)，下载地址在 [WeChatSetup](https://gitee.com/lch0821/WeChatSetup) 。
+2. 安装微信 `3.9.10.27` (与 `wcf` 版本v39.2.x 兼容) ，下载地址在 [WeChatSetup](https://gitee.com/lch0821/WeChatSetup) 。
 3. 克隆项目
 
 ```sh
@@ -113,7 +117,7 @@ python main.py -c 2
 
 输入：`Ctrl+C`。否则，会出现各种奇怪问题。
 
-### `<a name="config"></a>`修改配置
+## 修改配置的相关内容
 
 ℹ️ *修改配置后，需要重新启动，以便让配置生效。*
 
@@ -170,15 +174,22 @@ bard: # -----bard配置这行不填-----
   prompt: You am a large language model, trained by Google.
 ```
 
-#### 设置定时总结
+## 拓展功能配置修改
 
-```
+#### 更改定时总结的时间
+
+通常不需要对该项进行修改。
+
+在 `main.py` 里的  `main` 函数中，通过 `robot.onEveryTime` 传递 `robot.saveAutoSummary` 方法，即可设置定时总结。
+
+```python
+# 在每天晚上 7点（19:00）进行一次定时总结，总结的时间范围是 19:00 的前 7 个小时（12:00 - 19:00）
 robot.onEveryTime("19:00", robot.saveAutoSummary, time_hours=7)
 ```
 
 #### 权限管理
 
-可以通过 `/getid`命令得到wxid以及roomid，随后在数据库的permission表中设置权限。
+可以通过 `/getid` 命令得到 wxid 以及 roomid，随后在 `wechat_bot.db` 的数据库的 permission表 中设置权限。
 
 ## HTTP
 
@@ -188,3 +199,20 @@ robot.onEveryTime("19:00", robot.saveAutoSummary, time_hours=7)
 * GoHttp（基于 Go），参考 [GoHttp README.MD](https://github.com/lich0821/WeChatFerry/blob/master/clients/gohttp/README.md)
 * ~~wcfhttp（基于 Python）~~
   ❗ **wcfhttp 不再维护，有需要可以使用 [WcfRust](https://github.com/lich0821/wcf-client-rust) 或者 [GoHttp](clients/gohttp/README.md)。**
+
+## Copyright
+
+如果你喜欢这个项目，可以关注原作者的微信公众号或赞助原作者：
+
+| ![碲矿](https://s2.loli.net/2023/09/25/fub5VAPSa8srwyM.jpg) | ![赞赏](https://s2.loli.net/2023/09/25/gkh9uWZVOxzNPAX.jpg) |
+| :-------------------------------------------------------: | :-------------------------------------------------------: |
+|                 后台回复 `WCF` 加群交流                 |                      如果你觉得有用                      |
+
+## Contributors
+
+<a href="https://github.com/lich0821/WeChatRobot/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=lich0821/WeChatRobot" />
+</a>
+
+<a href="https://github.com/HK-Artificial-Intelligence-Association/WechatBot/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=HK-Artificial-Intelligence-Association/WechatBot" /></a>
