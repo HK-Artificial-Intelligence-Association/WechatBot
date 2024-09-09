@@ -279,7 +279,7 @@ class Robot(Job):#robot类继承自job类
         if chat_type and ChatType.is_in_chat_types(chat_type):
             if chat_type == ChatType.CHATGPT.value and ChatGPT.value_check(self.config.CHATGPT):
                 self.chat = ChatGPT(self.config.CHATGPT)  
-                self.model_type = 'ChatGPT-gpt-3.5-turbo'  
+                self.model_type = 'ChatGPT-gpt-4o-mini'  
             elif chat_type == ChatType.CHATGPTt.value and ChatGPTt.value_check(self.config.CHATGPTt):
                 self.chat = ChatGPTt(self.config.CHATGPTt)
                 self.model_type = 'ChatGPT-gpt-4o-2024-05-13'
