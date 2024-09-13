@@ -25,8 +25,7 @@
 0. 遇到问题可以看 **原仓库的[文档](https://wechatferry.readthedocs.io/zh/latest/)、[教程](https://mp.weixin.qq.com/s/APdjGyZ2hllXxyG_sNCfXQ)和 [FAQ](https://mp.weixin.qq.com/s/bdPNrbJYoXhezCzHMqLoEw)。**
 
    - 按照步骤来，版本保持一致，少走弯路。
-   - 按照步骤来，版本保持一致，少走弯路。
-   - 按照步骤来，版本保持一致，少走弯路。
+   - 若需要更详细的安装步骤以及后续的开发，可以阅读[补充资料](https://m0e8x072xo3.feishu.cn/wiki/KsUGwdax3i4gcskfApncXPXgnLh)
 1. 安装 Python>=3.9（建议3.10），例如 [3.10.11](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe)
 2. 安装微信 `3.9.10.27` (与 `wcf` 版本v39.2.x 兼容) ，下载地址在 [WeChatSetup](https://gitee.com/lch0821/WeChatSetup) 。
 3. 克隆项目
@@ -100,16 +99,15 @@ python main.py -c 2
 
 > python main.py -c C 其中参数 C 可选择如下所示
 >
->> 1. tigerbot 模型
->> 2. chatgpt 模型
->> 3. 讯飞星火模型
->> 4. chatglm 模型
+>> 2. ChatGPT-4o-mini
+>> 3. ChatGPT-4o-2024-05-13
+>> 4. 深度求索
 >>
 
 7. 运行遇到的问题
 
 - 如果出现如下报错 "No Such File or Directory" , 可在报错的目录创建该文件
-![定时聊天总结](./doc/InitLOGGERERROR.png)
+  ![定时聊天总结](./doc/InitLOGGERERROR.png)
 - 其余问题，关注原作者公众号“碲矿”寻找解决方法
 
 8. 停止
