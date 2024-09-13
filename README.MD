@@ -2,7 +2,7 @@
 
 基于 [WeChatFerry](https://github.com/lich0821/WeChatRobot) 与 [原版WeCharRobot](https://github.com/lich0821/WeChatRobot) 优化与更新后的微信机器人。添加了不少原版机器人不具有的功能。
 
->  ❗ 关于为什么原仓库的 Commit 记录没了，是因为当时写这个项目的姑娘不太会操作 Git 于是便将 `.git` 仓库清了重置了~ 后边在新的记录上缝缝改改一去不返，实在是抱歉。因此，本仓库的 init commit 的内容基本上都来源于原仓库的贡献者（已列于下方 Contributors）。
+> ❗ 关于为什么原仓库的 Commit 记录没了，是因为当时写这个项目的姑娘不太会操作 Git 于是便将 `.git` 仓库清了重置了~ 后边在新的记录上缝缝改改一去不返，实在是抱歉。因此，本仓库的 init commit 的内容基本上都来源于原仓库的贡献者（已列于下方 Contributors）。
 
 #### 新增的功能
 
@@ -34,6 +34,7 @@
 ```sh
 git clone -b xjy https://github.com/HK-Artificial-Intelligence-Association/WechatBot.git
 ```
+
 4. 安装依赖
 
 ```sh
@@ -53,6 +54,7 @@ conda create -n your_env_name python=3.10
 # 启用虚拟环境
 conda activate your_env_name
 ```
+
 6. 运行
 
 我们需要运行两次 `main.py` 第一次是生成配置文件 `config.yaml`, 第二次是真正跑你的机器人。
@@ -106,7 +108,8 @@ python main.py -c 2
 
 7. 运行遇到的问题
 
-- 如果报错"No Such File or Directory", 可在报错的目录创建该文件
+- 如果出现如下报错 "No Such File or Directory" , 可在报错的目录创建该文件
+![定时聊天总结](./doc/InitLOGGERERROR.png)
 - 其余问题，关注原作者公众号“碲矿”寻找解决方法
 
 8. 停止
@@ -187,9 +190,27 @@ bard: # -----bard配置这行不填-----
 robot.onEveryTime("19:00", robot.saveAutoSummary, time_hours=7)
 ```
 
+#### 聊天数据统计
+
+在 `main.py` 里的  `main` 函数中，通过 `robot.onEveryTime` 传递 `robot.periodic_statistics` 方法，即可设置定时聊天数据统计。
+
+```
+# robot.onEveryTime("20:00", robot.periodic_statistics())
+```
+
 #### 权限管理
 
 可以通过 `/getid` 命令得到 wxid 以及 roomid，随后在 `wechat_bot.db` 的数据库的 permission表 中设置权限。
+
+![定时聊天总结](./doc/permission.png)
+
+在roomid列填入wxid或者roomid来设置权限：
+
+- 用户或群组拥有admin权限时，可以使用所有功能；
+- 用户或群组拥有chat权限时，用户能在群聊中@bot进行对话；
+- 群组拥有autoSummary时，会自动发送定时聊天总结；
+- 用户或群组拥有callSummary权限时，能够使用 `@bot /总结1 `进行调用聊天总结;
+- 群组拥有periodStat权限时，会自动发送聊天数据统计数据；
 
 ## HTTP
 
