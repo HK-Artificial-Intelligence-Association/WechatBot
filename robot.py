@@ -228,7 +228,7 @@ class Robot(Job):#robot类继承自job类
             )
 
         # 新的判断条件，消息类型为1，is_group为1，并且content中包含'\func'
-        if msg_dict['type'] == 1 and msg_dict['is_group'] == 1 and '/help' in msg_dict['content']:
+        if msg_dict['type'] == 1 and msg_dict['is_group'] == 1 and '/help' in msg_dict['content'] and WxMsg.is_at(self.wxid):
             self.sendTextMsg(
                 f"我是兔狲机器人，小狲狲，你好鸭。当前我使用的模型是：{self.model_type}\n"
                 "你可以使用以下命令：\n"
@@ -240,7 +240,7 @@ class Robot(Job):#robot类继承自job类
             )
 
         
-        else:
+        elif WxMsg.is_at(self.wxid):
             content = msg.content.strip()
             # print(content)
             # 检查是否是控制命令或是否包含“总结”关键字
@@ -251,13 +251,13 @@ class Robot(Job):#robot类继承自job类
             elif content == "/nus":
                 if self.hasPermission(msg.roomid, "admin") or self.hasPermission(msg.sender, "admin"):
                     self.handle_close(msg)
-            elif "@" in content and "/总结" in content and msg_dict['type'] != 49:
+            elif "/总结" in content and msg_dict['type'] != 49:
                 if self.hasPermission(msg.roomid, "callSummary"):
                     self.handle_summary_request(msg)
             elif "/change" in content:
                 if self.hasPermission(msg.roomid, "admin") or self.hasPermission(msg.sender, "admin"):
                     self.change_model(msg)
-            elif "@" in content and "/getid" in content:
+            elif "/getid" in content:
                 self.handle_get_id_request(msg)
             elif self.active:
                 # 如果机器人处于活跃状态，则处理其他消息
