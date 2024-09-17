@@ -240,7 +240,7 @@ class Robot(Job):#robot类继承自job类
             )
 
         
-        elif msg.is_at(self.wxid):
+        elif (msg.is_at(self.wxid) and msg_dict['is_group'] == 1) or msg_dict['is_group'] != 1:
             content = msg.content.strip()
             # print(content)
             # 检查是否是控制命令或是否包含“总结”关键字
@@ -413,7 +413,7 @@ class Robot(Job):#robot类继承自job类
                     self.config.reload()
                     self.LOG.info("已更新")
             else:
-                if self.hasPermission(msg.sender, "chat"): self.toChitchat(msg)  # 闲聊
+                self.toChitchat(msg)  # 闲聊
 
     
     def onMsg(self, msg: WxMsg) -> int:
