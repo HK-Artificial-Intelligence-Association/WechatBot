@@ -227,8 +227,8 @@ class Robot(Job):#robot类继承自job类
                 msg_dict["roomid"]
             )
 
-        # 新的判断条件，消息类型为1，is_group为1，并且content中包含'\func'
-        if msg_dict['type'] == 1 and msg_dict['is_group'] == 1 and '/help' in msg_dict['content'] and WxMsg.is_at(self.wxid):
+        # 新的判断条件，消息类型为1，is_group为1，并且content中包含'/func'
+        if msg_dict['type'] == 1 and msg_dict['is_group'] == 1 and '/help' in msg_dict['content'] and msg.is_at(self.wxid):
             self.sendTextMsg(
                 f"我是兔狲机器人，小狲狲，你好鸭。当前我使用的模型是：{self.model_type}\n"
                 "你可以使用以下命令：\n"
@@ -240,7 +240,7 @@ class Robot(Job):#robot类继承自job类
             )
 
         
-        elif WxMsg.is_at(self.wxid):
+        elif msg.is_at(self.wxid):
             content = msg.content.strip()
             # print(content)
             # 检查是否是控制命令或是否包含“总结”关键字
