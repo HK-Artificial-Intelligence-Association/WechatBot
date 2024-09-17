@@ -259,9 +259,9 @@ class Robot(Job):#robot类继承自job类
                     self.change_model(msg)
             elif "/getid" in content:
                 self.handle_get_id_request(msg)
-            elif self.active:
+        elif self.active:
                 # 如果机器人处于活跃状态，则处理其他消息
-                self.handle_other_messages(msg)
+            self.handle_other_messages(msg)
 
     def change_model(self, msg):
         content = msg.content
