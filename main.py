@@ -60,9 +60,11 @@ def main(chat_type: int):
     # 测试
     # robot.postReceiverList(url='-----------------')# POST请求测试
     # robot.saveAutoSummary(time_hours = 4)
-    robot.startProcessing(url='')# GET请求测试
+    # GET请求测试
+    #robot.startProcessing(url='')
     # robot.sendReport() # 发送图片测试
-    robot.onEveryTime("20:00", robot.periodic_statistics())
+    # 聊天数据统计
+    # robot.onEveryTime("20:00", robot.periodic_statistics)
     # 每天 7 点发送天气预报
     #robot.onEveryTime("07:00", robot.sendWeatherReport)
     
