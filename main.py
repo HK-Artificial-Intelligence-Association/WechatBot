@@ -60,8 +60,7 @@ def main(chat_type: int):
     # 测试
     # robot.postReceiverList(url='-----------------')# POST请求测试
     # robot.saveAutoSummary(time_hours = 4)
-    # GET请求测试
-    #robot.startProcessing(url='')
+
     # robot.sendReport() # 发送图片测试
     # 聊天数据统计
     # robot.onEveryTime("20:00", robot.periodic_statistics)

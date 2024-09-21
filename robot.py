@@ -53,7 +53,7 @@ class Robot(Job):#robot类继承自job类
         self.allContacts = self.getAllContacts()# 获取所有联系人
         self.active = True # 状态标识，True为活跃，False为关闭
         self.model_type = None  # 初始化 model_type
-        self.calltime = 10 # 初始化调用次数
+        self.calltime = 5 # 初始化调用次数
         self.newsQueue = Queue() # 初始化新闻队列
         self.stopEvent = threading.Event()
         self.permissions = fetch_permission_from_db()
@@ -256,14 +256,14 @@ class Robot(Job):#robot类继承自job类
                     self.handle_summary_request(msg)
             elif "/change" in content:
                 if self.hasPermission(msg.roomid, "admin") or self.hasPermission(msg.sender, "admin"):
-                    self.change_model(msg)
+                    self.handle_change_request(msg)
             elif "/getid" in content:
                 self.handle_get_id_request(msg)
-        elif self.active:
+            elif self.active:
                 # 如果机器人处于活跃状态，则处理其他消息
-            self.handle_other_messages(msg)
+                self.handle_other_messages(msg)
 
-    def change_model(self, msg):
+    def handle_change_request(self, msg):
         content = msg.content
         print("消息内容:", content)  # 打印消息内容以调试
 
@@ -272,17 +272,20 @@ class Robot(Job):#robot类继承自job类
         if match:
             chat_type = int(match.group())
             print("提取的数字是:", chat_type)
+            self.change_model(chat_type)
         else:
             chat_type = None
             print("没有找到匹配的数字")
 
+    def change_model(self, chat_type: int):
+
         if chat_type and ChatType.is_in_chat_types(chat_type):
             if chat_type == ChatType.CHATGPT.value and ChatGPT.value_check(self.config.CHATGPT):
                 self.chat = ChatGPT(self.config.CHATGPT)  
-                self.model_type = 'ChatGPT-gpt-4o-mini'  
+                self.model_type = 'ChatGPT-gpt-4o-mini'
             elif chat_type == ChatType.CHATGPTt.value and ChatGPTt.value_check(self.config.CHATGPTt):
                 self.chat = ChatGPTt(self.config.CHATGPTt)
-                self.model_type = 'ChatGPT-gpt-4o-2024-05-13'
+                self.model_type = 'ChatGPT-gpt-4o'
             elif chat_type == ChatType.MOONSHOT.value and Moonshot.value_check(self.config.MOONSHOT):
                 self.chat = Moonshot(self.config.MOONSHOT)
                 self.model_type = 'Moonshot-moonshot-v1-32k'
@@ -345,7 +348,7 @@ class Robot(Job):#robot类继承自job类
                 return
 
             # 发送总结到微信
-            if msg.from_group():
+            if msg.from_group() and self.calltime > 0:
                 self.sendTextMsg(summary, msg.roomid, msg.sender)
                 self.sendTextMsg(f"本群总结调用次数还剩{self.calltime}次", msg.roomid, msg.sender)
             else:
