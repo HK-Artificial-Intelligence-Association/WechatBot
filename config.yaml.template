@@ -50,28 +50,28 @@ report_reminder:
 chatgpt:  # -----chatgpt配置这行不填-----
   key:  # 填写你 ChatGPT 的 key
   api: https://api.openai.com/v1  # 如果你不知道这是干嘛的，就不要改
-  model: gpt-3.5-turbo
+  model: gpt-4o-mini
   proxy:  # 如果你在国内，你可能需要魔法，大概长这样：http://域名或者IP地址:端口号
   prompt: 你是智能聊天机器人，你叫 wcferry  # 根据需要对角色进行设定
 
 chatgptt:
   key: #填写chatgpt key#
-  api: https://ganjiuwanshi.com/v1
-  model: gpt-4-turbo-2024-04-09
+  api: https://api.openai.com/v1
+  model: gpt-4o
   proxy: null
   prompt: 你是智能聊天机器人，你叫小狲狲
 
 moonshot:
   key: #填写moonshot api
-  api: https://ganjiuwanshi.com/v1
+  api: https://api.moonshot.cn/v1
   model: moonshot-v1-32k
   proxy: null
   prompt: 你是智能聊天机器人，你叫小狲狲
 
 qwen:
   key: #填写qwen api
-  api: https://ganjiuwanshi.com/v1
-  model: moonshot-v1-32k
+  api: 
+  model: 
   proxy: null
   prompt: 你是智能聊天机器人，你叫小狲狲
 
@@ -104,9 +104,9 @@ zhipu:  # -----zhipu配置这行不填-----
   api_key:  #api key
   model:   # 模型类型
 
-  deepseek:
-  key: 
-  api: https://api.deepseek.com
-  model: deepseek-chat
-  proxy: null
-  prompt: 
+deepseek:
+key: 
+api: https://api.deepseek.com
+model: deepseek-chat
+proxy: null
+prompt: 
