@@ -6,7 +6,7 @@ class ChatType(IntEnum):
     # UnKnown = 0  # 未知, 即未设置
     TIGER_BOT = 1  # TigerBot
     CHATGPT = 2  # ChatGPT-4o-mini
-    CHATGPTt = 3  # ChatGPT-4o-2024-05-13
+    CHATGPTt = 3  # ChatGPT-4o
     MOONSHOT = 4 #Moonshot
     QWEN = 5
     DeepSeek = 6 #深度求索
