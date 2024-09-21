@@ -27,7 +27,7 @@
    - 按照步骤来，版本保持一致，少走弯路。
    - 若需要更详细的安装步骤以及后续的开发，可以阅读[补充资料](https://m0e8x072xo3.feishu.cn/wiki/KsUGwdax3i4gcskfApncXPXgnLh)
 1. 安装 Python>=3.9（建议3.10），例如 [3.10.11](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe)
-2. 安装微信 `3.9.10.27` (与 `wcf` 版本v39.2.x 兼容) ，下载地址在 [WeChatSetup](https://gitee.com/lch0821/WeChatSetup) 。
+2. 安装微信 `3.9.10.27` (与 `wcf` 版本v39.2.x 兼容) ，下载地址在[原作者地址](https://github.com/lich0821/WeChatFerry/releases/tag/v39.2.4) 或[WeChatSetup](https://gitee.com/lch0821/WeChatSetup) 。
 3. 克隆项目
 
 ```sh
@@ -60,6 +60,8 @@ conda activate your_env_name
 直接运行程序会自动拉起微信，如果微信未打开，会自动打开微信；如果版本不对，也会有提示；其他报错，请进群交流。
 
 下面代码为第一次运行：第一次运行 `main.py` 会在 WeChatRobot 目录下生成一个 `config.yaml` 文件，参照修改配置进行修改。
+
+同时，第一次运行可能会出现报错弹窗，请根据后文“运行遇到的问题”进行处理。
 
 其中 chatgpt、tigerbot、chatglm 和 xinghuo_web 是四种模型的配置信息，你需要配置它们的参数，不知道的可以加群交流。
 
@@ -100,8 +102,9 @@ python main.py -c 2
 > python main.py -c C 其中参数 C 可选择如下所示
 >
 >> 2. ChatGPT-4o-mini
->> 3. ChatGPT-4o-2024-05-13
->> 4. 深度求索
+>> 3. ChatGPT-4o
+>> 4. moonshot
+>> 6. deepseek
 >>
 
 7. 运行遇到的问题
