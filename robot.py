@@ -221,9 +221,10 @@ class Robot(Job):#robot类继承自job类
                 f"我是兔狲机器人，小狲狲，你好鸭。当前我使用的模型是：{self.model_type}\n"
                 "目前我有的功能如下：\n"
                 "1. @我，我可以回答你的问题哦\n"
-                "2. /总结 - 获取聊天总结，我可以帮你总结一小时的聊天内容哦\n"
-                "3. /help - 获取帮助信息\n"
-                "3. 后续功能还在开发中，敬请期待！\n",
+                "2. /总结 - 获取聊天总结，我可以帮你总结2小时的聊天内容哦\n"
+                "3. /聊天统计 - 获取聊天数据统计，我可以向你展示最近24小时的发言排行榜哦\n"
+                "4. /help - 获取帮助信息\n"
+                "5. 后续功能还在开发中，敬请期待！\n",
                 msg_dict["roomid"]
             )
 
@@ -235,7 +236,9 @@ class Robot(Job):#robot类继承自job类
                 "1. /help - 获取帮助信息\n"
                 "2. /总结1 - 获取2小时内分话题式聊天总结\n"
                 "3. /总结2 - 获取2小时内不话题式聊天总结\n"
-                "4. 后续功能还在开发中，敬请期待！\n",
+                "4. /聊天统计 - 获取聊天数据统计\n"
+                "5. /getid - 获取当前群聊或用户的roomid与wxid\n"
+                "6. 后续功能还在开发中，敬请期待！\n",
                 msg_dict["roomid"]
             )
 
@@ -259,6 +262,8 @@ class Robot(Job):#robot类继承自job类
                     self.handle_change_request(msg)
             elif "/getid" in content:
                 self.handle_get_id_request(msg)
+            elif "/聊天统计" in content:
+                self.handle_statistics_request(msg)
             elif self.active:
                 # 如果机器人处于活跃状态，则处理其他消息
                 self.handle_other_messages(msg)
@@ -709,40 +714,52 @@ class Robot(Job):#robot类继承自job类
         ]
         '''
         
+
+    def send_statistics(self, receiver, type = "daily"):
+        '''发送聊天数据统计'''
+        leaderboard = collect_stats_in_room(receiver, type)
+        if leaderboard:
+            msgCount = 0
+            current_time = int(datetime.now().timestamp())
+            if type == "daily":
+                before_time = int(datetime.now().timestamp())-3600*24
+            elif type == "weekly":
+                before_time = int(datetime.now().timestamp())-3600*24*7
+            elif type == "monthly":
+                before_time = int(datetime.now().timestamp())-3600*24*30
+            # 格式化时间为 "YYYY-MM-DD HH:MM"
+            formatted_cu = datetime.fromtimestamp(current_time).strftime("%Y-%m-%d %H:%M")
+            formatted_be = datetime.fromtimestamp(before_time).strftime("%Y-%m-%d %H:%M")
+            stat=["📊群聊数据统计v0.2\n",
+                f"🕰时间段：{formatted_be}-{formatted_cu}\n",
+                f"👥发言人数：{len(leaderboard)}\n",
+                f"💬消息总数：{msgCount}\n",
+                f"🏆发言排行榜\n",
+            ]
+
+            for i, ld in enumerate(leaderboard):
+                msgCount += ld[1] # 统计消息总数
+                username=self.wcf.get_alias_in_chatroom(ld[0], receiver) # 将wxid转为群昵称
+                stat.append(f"    {i+1}. [{username}]：{ld[1]}条\n")
+                if i==4: break # 只显示前5名
+            stat[3]=f"💬消息总数：{msgCount}\n" # 更新消息总数
+            stat.append("🚀🚀🚀")
+        else: print(f"最近没有发言记录,无法生成群聊数据统计")
+        result = ''.join(stat)
+        self.sendTextMsg(result, receiver)
+
+    def handle_statistics_request(self, msg: WxMsg, type="daily"):
+        '''统计聊天信息'''
+        if msg.from_group:
+            self.send_statistics(msg.roomid, type)
+        else:
+            self.sendTextMsg("该功能仅支持群聊哦！", msg.sender)
+
     def periodic_statistics(self, type="daily"):
         '''定时统计聊天信息'''
         receivers = fetch_roomid_list("periodStat")
         for receiver in receivers:
-            leaderboard = collect_stats_in_room(receiver, type)
-            if leaderboard:
-                msgCount = 0
-                current_time = int(datetime.now().timestamp())
-                if type == "daily":
-                    before_time = int(datetime.now().timestamp())-3600*24
-                elif type == "weekly":
-                    before_time = int(datetime.now().timestamp())-3600*24*7
-                elif type == "monthly":
-                    before_time = int(datetime.now().timestamp())-3600*24*30
-                # 格式化时间为 "YYYY-MM-DD HH:MM"
-                formatted_cu = datetime.fromtimestamp(current_time).strftime("%Y-%m-%d %H:%M")
-                formatted_be = datetime.fromtimestamp(before_time).strftime("%Y-%m-%d %H:%M")
-                stat=["📊群聊数据统计v0.2\n",
-                    f"🕰时间段：{formatted_be}-{formatted_cu}\n",
-                    f"👥发言人数：{len(leaderboard)}\n",
-                    f"💬消息总数：{msgCount}\n",
-                    f"🏆发言排行榜\n",
-                ]
-
-                for i, ld in enumerate(leaderboard):
-                    msgCount += ld[1] # 统计消息总数
-                    username=self.wcf.get_alias_in_chatroom(ld[0], receiver) # 将wxid转为群昵称
-                    stat.append(f"    {i+1}. [{username}]：{ld[1]}条\n")
-                    if i==4: break # 只显示前5名
-                stat[3]=f"💬消息总数：{msgCount}\n" # 更新消息总数
-                stat.append("🚀🚀🚀")
-            else: print(f"最近没有发言记录,无法生成群聊数据统计")
-            result = ''.join(stat)
-            self.sendTextMsg(result, receiver)
+            self.send_statistics(receiver, type)
         return []
 
     def handle_get_id_request(self, msg: WxMsg):
