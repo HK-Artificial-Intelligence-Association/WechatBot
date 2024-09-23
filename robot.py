@@ -744,9 +744,9 @@ class Robot(Job):#robot类继承自job类
                 if i==4: break # 只显示前5名
             stat[3]=f"💬消息总数：{msgCount}\n" # 更新消息总数
             stat.append("🚀🚀🚀")
+            result = ''.join(stat)
+            self.sendTextMsg(result, receiver) # 发送统计内容
         else: print(f"最近没有发言记录,无法生成群聊数据统计")
-        result = ''.join(stat)
-        self.sendTextMsg(result, receiver)
 
     def handle_statistics_request(self, msg: WxMsg, type="daily"):
         '''统计聊天信息'''
