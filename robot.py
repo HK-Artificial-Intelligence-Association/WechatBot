@@ -557,7 +557,7 @@ class Robot(Job):#robot类继承自job类
             summary = self.chat.get_summary1(messages, receiver)# 生成聊天总结
             self.sendTextMsg(summary, receiver)# 发送总结内容
             if developers: # 发送调试消息
-                    self.sendTextMsg(summary, developers[0])
+                self.sendTextMsg(summary, developers[0])
 
 
     def saveAutoSummary(self, time_hours=2):
