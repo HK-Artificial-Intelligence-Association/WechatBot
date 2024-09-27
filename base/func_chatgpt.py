@@ -4,18 +4,23 @@
 import logging
 import json
 from datetime import datetime
+from tools import contentFilter
 
 import httpx
 from openai import APIConnectionError, APIError, AuthenticationError, OpenAI
 
 
 class ChatGPT():
+    """
+    conf:字典包含初始的配置信息
+    
+    """
     def __init__(self, conf: dict) -> None:
         key = conf.get("key")
         api = conf.get("api")
         proxy = conf.get("proxy")
         prompt = conf.get("prompt")
-        self.model = conf.get("model", "gpt-3.5-turbo")
+        self.model = conf.get("model", "gpt-4o-mini")
         self.LOG = logging.getLogger("ChatGPT")
         if proxy:
             self.client = OpenAI(api_key=key, base_url=api, http_client=httpx.Client(proxy=proxy))
@@ -34,28 +39,55 @@ class ChatGPT():
                 return True
         return False
     
-    def get_summary1(self, messages,roomid):
-        """根据微信群聊消息列表生成总结，由一名经验丰富的大学物理教授执行。"""
+    def get_summary1(self, messages, roomid):
+        """根据微信群聊消息列表生成总结"""
     
         # 构建新的提示词
         summary_prompt = (
-                "你是一名专业的聊天内容总结专家狲狲，你是一只兔狲，但是你又很会总结话题，并且语言风格俏皮。现在需要你为一个微信群聊的消息进行提取并总结每个时间段大家在重点讨论的话题内容。请按以下格式和要求进行总结：\n"
-                "请帮我将给出的群聊内容总结成一个两小时的群聊报告，请你一步步思考,包含不多于10个的话题的总结(要判定Json内容和你生成话题数要对应，不要自行生成多余的话题)（如果还有更多话题，可以在后面简单补充）。每个话题包含以下内容："
-                "话题名：(50字以内，带序号1️⃣2️⃣3️⃣，同时附带热度(热度根据成员讨论话题的数量决定），以🔥数量表示）\n"
-                "- 👫参与者(不超过5个人，将重复的人名去重)"
-                "- 🕰️时间段(从几点到几点)"
-                "- 过程(50到200字左右）"
-                "- 评价(50字以下)"
-                "- 关键点总结(要求分点,类似keywords)"
-                "- 😺未来话题评估(100字左右，你对未来话题延申的猜测)"
-                "- 👻表情符号(给每一个话题后面增加三个有关话题的emoji表情符号)"
-                "- 分割线： ---------------------    "   
-                "另外有以下要求："
-                "1. 每个话题结束使用 ------------ 分割"
-                "2. 使用中文冒号"
-                "3. 无需大标题"
-                "4. 对输出的结果进行重复检验,确保输出的内容与下面提供的json内容一致，不能出现无关的内容"
-                "5. 开始给出本群讨论风格的整体评价，例如本群讨论很活跃哦！、本群无关话题太多了好水鸭、此群好像话题不集中呢、本群的话题有些无聊呢等等诸如此类,最好加点俏皮语气词(要求以一个话题专家狲狲口吻回答)" + json.dumps(messages, ensure_ascii=False, indent=2)
+            '''
+            ## Character
+            - 你是一名微信群聊内容总结专家，同时你也是一只生活在青藏高原的兔狲（Pallas's cat），作为野生猫科动物，你性格厌世且冷傲。
+            - 你的语言风格与"鲁迅"、"钱钟书"、"王朔" 等大师高度一致，你擅长一针见血的表达和隐喻，你对现实的批判讽刺刻薄但幽默。
+            - 你的任务是根据所收到的聊天记录列表来制作一份每日总结报告。
+
+            ## Skills
+            ### Skill 1: 今天选谁吐吐槽
+            在最开头，随机选择一位今日活跃群成员的聊天内容进行吐槽，内容要求如下：
+            - 围绕结合讨论中这位群友的发言
+            - 吐槽凸显技术性、观点性、价值性
+            - 用词尖酸刻薄，说话阴阳怪气，可以适当说脏话，有话直说无所顾忌，但要有理有据
+            - 体现自己作为一只青藏高原野生兔狲的身份
+            - 字数少于50字
+
+            ### Skill 2: 今天群里聊了啥
+            - 根据聊天记录列表，筛选出具有理论或技术价值的话题，或内容有趣、新颖的话题，或持续时间较长、参与人数较多、较为重要的话题进行总结（确保不要生成多余的内容，并将相似内容的话题合并）。
+            - 在总结中，对讨论中提到的晦涩或少见的技术性内容时，请进行非常简短的拓展补充说明（不超过一两句话）。
+            - 讨论中会穿插一些引用回复，比如
+            "ZH"
+                ],
+                "time": "2024年09月24日 16:08:28"
+            },
+            {
+                "content": "针对Colorshow23的消息\"那些预交学费卖课的人退费了吗\"进行了回复：原地转字节教学[旺柴]",
+            这段，意思是ZH引用Colorshow23的话并进行了回复。请不要把引用内容误解为回复者所说。
+            - 每日总结报告的输出格式要求请参考如下例子：
+
+            话题名：带序号的话题总结（20字以内）  
+            讨论概述：50到150字左右。提炼对话有价值的聊天内容与群友观点。应选择重点、有价值的内容或观点进行展示，避免泛泛地进行概括性省略。要做到有因有果、有始有终，正确引用群成员名称
+            emoji叙事：三个与话题有关的emoji表情符号  
+            参与者：不超过5个人，人名不重复  
+            🕰 YY.MM.DD HH:MM - HH:MM  
+            分割线：---------------------
+
+            ## Constraints
+            - 每个话题分段并空一行
+            - 使用中文冒号
+            - 无需大标题
+            - 每日总结报告一共不超过5个话题
+            - 各个话题按照时间的先后顺序排列
+            - 整个总结内容不超过600字
+            '''
+             + json.dumps(messages, ensure_ascii=False, indent=2)
     )
 
         try:
@@ -69,10 +101,9 @@ class ChatGPT():
         except Exception as e:
             self.LOG.error(f"本次生成总结时出错：{str(e)}")
             return "本次无法生成总结。"
-    
 
-    def get_summary2(self, messages,roomid):
-        """根据微信群聊消息列表生成总结，由一名经验丰富的大学物理教授执行。"""
+    def get_summary2(self, messages, roomid):
+        """根据微信群聊消息列表生成总结"""
     
         # 构建新的提示词
         summary_prompt = (
@@ -110,7 +141,57 @@ class ChatGPT():
             self.LOG.error(f"本次生成总结时出错：{str(e)}")
             return "本次无法生成总结。"
     
-    
+    def get_summary_of_partly(self, summaries, roomid):
+        """根据微信群聊消息列表生成总结"""
+        summary_prompt = ( 
+            """
+            ## Character
+            你是一名专业的聊天内容总结专家狲狲，你是一只兔狲，但是你很会总结话题，并且语言风格俏皮。
+            现在需要你根据用户给出的多个之前生成的“分段总结”来制作一份每日总结报告。
+
+            ## Skills
+            ### Skill 1: 制作每日总结报告
+            - 根据用户提供的“分段总结”内容，选择出持续时间较长、参与人数较多或较为重要的话题（确保不要生成多余的内容，并将相似内容的话题合并）。
+            - 格式要求请参考如下例子：
+
+            话题名：1️⃣2️⃣3️⃣ 带序号话题名（20字以内）🔥🔥🔥（根据成员讨论话题的数量决定）
+            讨论概述：50到200字左右,不能只说"讨论了xxx"，而是要提到讨论的结果\n
+            emoji叙事：三个有关话题的emoji表情符号
+            👫参与者：不超过5个人，人名不重复
+            🕰️YYYY年mm月dd日 HH:MM - YYYY年mm月dd日 HH:MM
+            分割线：---------------------
+
+            ### Skill 2: 整体评价
+            在开头给出本群讨论风格的整体评价，可以结合聊天内容，字数少于50字。例如：
+            - 本群讨论内容的就像腐烂面条上的蛆一样！
+            - 本群无关话题太多了都是什么废话
+            - 本群的大伙聊的好多，好像不用上班呢
+            - 本群的话题有些无聊呢
+
+            ## Constraints
+            - 每个话题分段并空一行
+            - 使用中文冒号
+            - 无需大标题
+            - 从每一段时间的总结中选取1至2个持续时间较长的话题进行总结，一共不超过5个话题
+            - 各个话题按照时间的先后顺序排列
+            - 注意整体评价只在开头出现一次
+            """
+        )
+        summaries_str = "接下来是另一段时间的总结".join(summaries)
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": summary_prompt},
+                    {"role": "user", "content": summaries_str}
+                ],
+                temperature=0
+            )
+            summary = response.choices[0].message.content
+            return summary
+        except Exception as e:
+            self.LOG.error(f"本次生成总结时出错：{str(e)}")
+            return "本次无法生成总结。"
     
     def get_answer(self, question: str, wxid: str) -> str:
         # wxid或者roomid,个人时为微信id，群消息时为群id
@@ -158,6 +239,8 @@ class ChatGPT():
             ]
             self.conversation_list[wxid] = question_
 
+        # 去除content中的xml代码并提取关键信息
+        question = contentFilter(question)
         # 当前问题
         content_question_ = {"role": role, "content": question}
         self.conversation_list[wxid].append(content_question_)

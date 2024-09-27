@@ -1,9 +1,11 @@
 import sqlite3
 import os
 import time
+import re
 from utils.token_utils import num_tokens_from_string, get_gptmodel_name
 from datetime import datetime, timedelta
 from wcferry import Wcf, WxMsg # wcferry库提供的基础类和消息类，用于微信通讯
+from tools import contentFilter
 
 db_path = 'wechat_bot.db'
 
@@ -41,6 +43,34 @@ def create_database():
     )
     ''')
 
+
+    """
+    创建 summary 表
+    """
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS summary (
+        roomid TEXT NOT NULL,
+        date DATE,
+        summary TEXT,
+        ts INTEGER NOT NULL,
+        type TEXT,
+        PRIMARY KEY (roomid, ts)
+    )
+    ''')
+
+    """
+    创建 permission 表
+    """
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS permission (
+        roomid TEXT PRIMARY KEY,
+        admin BOOLEAN DEFAULT FALSE,
+        chat BOOLEAN DEFAULT FALSE,
+        autoSummary BOOLEAN DEFAULT FALSE,
+        callSummary BOOLEAN DEFAULT FALSE,
+        periodStat BOOLEAN DEFAULT FALSE
+    )
+    ''')
 
     conn.commit()
     conn.close()
@@ -116,6 +146,30 @@ def insert_roomid(roomid):
         conn.close()
 
 
+def store_summary(roomid, summary, ts, type='partly'):
+    """
+    将 roomid, summary 和 ts 插入到 'summary' 表中，其中 date 由 ts 计算得出。
+    """
+    # 连接到数据库
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+
+    # 从 ts 中提取 date
+    date = datetime.fromtimestamp(ts).strftime('%Y年%m月%d日')
+
+    # 插入数据到 'summary' 表
+    c.execute('''
+    INSERT INTO summary (ts, roomid, summary, date, type)
+    VALUES (?, ?, ?, ?, ?)
+    ''', (ts, roomid, summary, date, type))
+
+    # 提交更改并关闭连接
+    conn.commit()
+    conn.close()
+
+    print(f"已将对{roomid}于{date}的{type}聊天记录总结加入数据库")
+
+
 def fetch_messages_from_last_two_hour(roomid):
     """从数据库中获取过去两小时内的所有消息，并打印获取到的消息内容"""
     conn = sqlite3.connect(db_path)
@@ -157,6 +211,50 @@ def fetch_messages_from_last_two_hour(roomid):
     finally:
         conn.close()
 
+# 调用指定时间内的消息
+def fetch_messages_from_last_some_hour(roomid,time_hours):
+    """从数据库中获取过去几个小时内的所有消息，并打印获取到的消息内容"""
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    #获取当前时间戳和几小时前的时间戳
+    current_time = int(datetime.now().timestamp())
+    before_time = int(current_time - 3600*time_hours)# 首先乘以秒数再转为int防止数据库检索失败
+    print(f"当前时间戳：{current_time}, {time_hours}小时前时间戳：{before_time}")  # 打印当前时间和n小时前的时间戳
+    #执行SQL查询以获取消息
+    try:
+        # 查询符合 roomid 和时间戳条件的消息，且 content 不包含 "@小狲狲"
+        cursor.execute(
+            "SELECT content, sender, ts FROM messages WHERE roomid = ? AND ts >= ? AND content NOT LIKE '%@小狲狲%'",
+            (roomid, before_time)
+        )
+        rows = cursor.fetchall()
+        
+        if rows:
+            print("成功获取以下消息：")
+            messages = []
+            for row in rows:
+                content, sender_id, timestamp = row
+                readable_time = datetime.fromtimestamp(timestamp).strftime('%Y年%m月%d日 %H:%M:%S')
+                content = contentFilter(content)#过滤掉xml
+                message = {
+                    "content": content,
+                    "sender_id": sender_id,
+                    "time": readable_time
+                }
+                messages.append(message)
+                print(f"内容: {content}, 发送者ID: {sender_id}, 时间: {readable_time}")
+        else:
+            print(f"过去{time_hours}小时内没有消息。")
+            return []
+
+        return messages
+    except Exception as e:
+        print(f"获取消息失败：{e}")
+        return []
+    finally:
+        conn.close()
+
+
 def fetch_roomid_from_db():
     """从数据库获取最新的单个roomid"""
     try:
@@ -190,3 +288,114 @@ def fetch_roomids_from_db():
     room_ids = [row[0] for row in cursor.fetchall()]
     conn.close()
     return room_ids
+
+def fetch_summary_from_db(roomid, type):
+    '''从数据库收集指定类型的定时总结
+
+    parameter:
+        roomid: 要获取总结的房间ID
+        type: 要获取总结的类型，可选值为'partly', 'daily', 'weekly', 'monthly'
+    '''
+    # 连接到SQLite数据库
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    typelist=['partly','daily','weekly','monthly']
+    type2=typelist[(typelist.index(type)+1) % len(typelist)] # 防止下标越界
+    if type2=='daily':hour=24
+    elif type2=='weekly':hour=24*7
+    elif type2=='monthly':hour=24*31
+    elif type2=='partly':hour=24*365
+    # 还有else的情况 以及总结过程中的时间问题，月总结是否需要日期？
+    current_time = int(datetime.now().timestamp())
+    before_time = current_time - 3600*hour
+    # 执行SQL查询，获取特定roomid且ts大于temp_ts的所有summary数据
+    c.execute("SELECT summary FROM summary WHERE roomid = ? AND type = ? AND ts >= ?", (roomid, type, before_time))
+    
+    # 获取所有查询结果
+    
+    summaries = c.fetchall()
+    print(f"成功从数据库收集到{len(summaries)}条{type}总结")
+    # 关闭数据库连接
+    conn.close()
+
+    # 将结果转换为列表，因为fetchall()返回的是元组列表
+    return [summary[0] for summary in summaries]
+
+
+def collect_stats_in_room(roomid, type="daily"):
+    '''获取指定房间ID和时间段的用户发言次数'''
+    # 连接到数据库
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    if type == "daily":
+        hour = 24
+    elif type == "weekly":
+        hour = 24 * 7
+    elif type == "monthly":
+        hour = 24 * 30
+    else:
+        raise ValueError("Invalid type. Valid types are 'daily', 'weekly', or 'monthly'.")
+    current_time = int(datetime.now().timestamp())
+    before_time = current_time - 3600 * hour
+
+    # 执行 SQL 查询
+    query = """
+    SELECT sender, COUNT(*) as count
+    FROM messages
+    WHERE roomid = ? AND ts >= ?
+    GROUP BY sender
+    ORDER BY count DESC
+    """
+    cursor.execute(query, (roomid, before_time))
+    
+    # 获取查询结果
+    result = cursor.fetchall()
+    
+    # 关闭数据库连接
+    conn.close()
+    
+    return result
+
+
+def fetch_permission_from_db():
+    '''从数据库中获取房间权限'''
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT roomid, admin, chat, autoSummary, callSummary, periodStat FROM permission")
+
+    results = cursor.fetchall()
+    
+    permissions = {}
+    for result in results:
+        permissions[result[0]] = {
+            'admin': bool(result[1]),
+            'chat': bool(result[2]),
+            'autoSummary': bool(result[3]),
+            'callSummary': bool(result[4]),
+            'periodStat': bool(result[5])
+        }
+    
+    conn.close()
+    return permissions
+
+
+def fetch_roomid_list(type):
+    '''输出具有指定权限的房间ID列表'''
+        # 连接到SQLite数据库
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+
+    # 执行SQL查询，获取具有权限的roomid
+    c.execute(f"SELECT roomid FROM permission WHERE {type} = 1 AND roomid NOT LIKE 'wxid%'")
+    # 获取所有查询结果
+    
+    roomids = c.fetchall()
+    roomids = [row[0] for row in roomids]
+    print(f"成功从数据库收集到{len(roomids)}个具有{type}权限的roomid")
+    print(roomids)
+    # 关闭数据库连接
+    conn.close()
+
+    # 将结果转换为列表，因为fetchall()返回的是元组列表
+    return roomids
