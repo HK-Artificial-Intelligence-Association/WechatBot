@@ -533,18 +533,20 @@ class Robot(Job):#robot类继承自job类
     def sendAutoSummary(self,time_hours=2) -> None:
         """自动总结，默认总结2小时的聊天记录"""
         receivers = fetch_roomid_list("autoSummary")  # 指定接收者，可以根据需要进行修改
+        developers = fetch_roomid_list("admin")  # 指定调试群组，将总结内容发送至群组
         for receiver in receivers:
             messages_withwxid = fetch_messages_from_last_some_hour(roomid = receiver, time_hours=time_hours)
             # 将messages里的wxid替换成wx昵称
             messages = []
-            
             for message_withwxid in messages_withwxid:
+                valid_name = set()
                 sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver)
                 if sender == "": # 将messages里的wxid替换成wx昵称
                     sender = message_withwxid["sender_id"]
                     self.LOG.info(f"{sender}昵称获取错误，已使用wxid替换")
-                else:
-                    self.LOG.info(f"{sender}昵称获取成功啦")
+                elif sender not in valid_name:
+                    self.LOG.info(f"{sender}昵称获取成功")
+                    valid_name.add(sender)
                 message = {
                     "content": message_withwxid["content"],
                     "sender":sender,
@@ -554,6 +556,8 @@ class Robot(Job):#robot类继承自job类
 
             summary = self.chat.get_summary1(messages, receiver)# 生成聊天总结
             self.sendTextMsg(summary, receiver)# 发送总结内容
+            if developers: # 发送调试消息
+                    self.sendTextMsg(summary, developers[0])
 
 
     def saveAutoSummary(self, time_hours=2):
@@ -562,21 +566,19 @@ class Robot(Job):#robot类继承自job类
         """
         receivers = fetch_roomid_list("autoSummary")  # 指定总结群聊，可以根据需要进行修改
         if not receivers: print("没有指定进行总结的群聊")
-        #切换到DeepSeek模型进行总结
-        # self.chat = DeepSeek(self.config.DEEPSEEK)
-        # self.model_type = 'DeepSeek-deepseek-chat'
-        # self.LOG.info(f"已选择: {self.chat}")
         for receiver in receivers:
             messages_withwxid = fetch_messages_from_last_some_hour(receiver, time_hours)
             if not messages_withwxid:continue # 如果没有聊天记录则跳过
             messages = []
             for message_withwxid in messages_withwxid:
-                sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver),
+                valid_name = set()
+                sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver)
                 if sender == "": # 将messages里的wxid替换成wx昵称
                     sender = message_withwxid["sender_id"]
                     self.LOG.info(f"{sender}昵称获取错误，已使用wxid替换")
-                else:
-                    self.LOG.info(f"{sender}昵称获取成功啦")
+                elif sender not in valid_name:
+                    self.LOG.info(f"{sender}昵称获取成功")
+                    valid_name.add(sender)
                 message = {
                     "content": message_withwxid["content"],
                     "sender":sender,
@@ -586,10 +588,6 @@ class Robot(Job):#robot类继承自job类
 
             summary = self.chat.get_summary1(messages,roomid=receiver)
             store_summary(receiver, summary, int(datetime.now().timestamp()))
-        # 切换回4o
-        # self.chat = ChatGPTt(self.config.CHATGPTt)
-        # self.model_type = 'gpt-4-turbo-2024-04-09'
-        # self.LOG.info(f"已选择: {self.chat}")
 
         return []
     def sendDailySummary(self) -> None:# 以后会新增参数或者函数（sendWeeklySummary）
