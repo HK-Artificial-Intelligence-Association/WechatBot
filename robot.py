@@ -324,17 +324,17 @@ class Robot(Job):#robot类继承自job类
     def handle_summary_request(self, msg: WxMsg, time_hours=2):
         """处理总结请求,使用GPT生成总结，默认提取2小时的聊天记录"""
         messages_withwxid = fetch_messages_from_last_some_hour(msg.roomid, time_hours)
-
         messages = []
-
+        valid_name = set()
         for message_withwxid in messages_withwxid:
             sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], msg.roomid)
             # 将messages里的wxid替换成wx昵称，get_info_by_wxid因不明原因出错，故改用get_alias_in_chatroom方法
-            if sender == "": # 若读取昵称失败，使用wxid替代
+            if sender == "": # 将messages里的wxid替换成wx昵称
                 sender = message_withwxid["sender_id"]
                 self.LOG.info(f"{sender}昵称获取错误，已使用wxid替换")
-            else:
-                self.LOG.info(f"{sender}昵称获取成功啦")
+            elif sender not in valid_name:
+                self.LOG.info(f"{sender}昵称获取成功")
+                valid_name.add(sender)
 
             message = {
                 "content": message_withwxid["content"],
