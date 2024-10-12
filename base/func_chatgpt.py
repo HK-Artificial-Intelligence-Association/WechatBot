@@ -42,6 +42,8 @@ class ChatGPT():
     def get_summary1(self, messages, roomid):
         """根据微信群聊消息列表生成总结"""
     
+        messages_with_boundaries = self.add_boundaries(messages)
+        messages_as_string = "\n".join(messages_with_boundaries)
         # 构建新的提示词
         summary_prompt = (
             '''
@@ -87,7 +89,7 @@ class ChatGPT():
             - 各个话题按照时间的先后顺序排列
             - 整个总结内容不超过600字
             '''
-             + json.dumps(messages, ensure_ascii=False, indent=2)
+             + messages_as_string
     )
 
         try:
@@ -105,6 +107,9 @@ class ChatGPT():
     def get_summary2(self, messages, roomid):
         """根据微信群聊消息列表生成总结"""
     
+        messages_with_boundaries = self.add_boundaries(messages)
+        messages_as_string = "\n".join(messages_with_boundaries)
+
         # 构建新的提示词
         summary_prompt = (
                 "你是一名专业的聊天内容总结专家狲狲，你是一只兔狲，但是你很会总结话题，并且语言风格俏皮。现在需要你为一个微信群聊的消息进行提取并总结。请按以下格式和要求进行总结：\n"
@@ -126,7 +131,8 @@ class ChatGPT():
                 "3. 无需大标题"
                 "4. 对输出的结果进行重复检验，确保输出的内容与下面提供的json内容一致，不能出现无关的内容"
                 "5. 开始给出本群讨论风格的整体评价，例如：本群讨论很活跃哦！、本群无关话题太多了好水鸭、此群好像话题不集中呢、本群的话题有些无聊呢等等诸如此类，最好加点俏皮语气词（要求以一个话题专家狲狲的口吻回答）"
-                "6. 使用提供的json内容，确保总结内容与其大致相似，不要生成幻觉内容，严格依据提供的内容进行总结。" + json.dumps(messages, ensure_ascii=False, indent=2)
+                "6. 使用提供的json内容，确保总结内容与其大致相似，不要生成幻觉内容，严格依据提供的内容进行总结。"
+                  + messages_as_string
     )
 
         try:
@@ -146,7 +152,8 @@ class ChatGPT():
         summary_prompt = ( 
             """
             ## Character
-            你是一名专业的聊天内容总结专家狲狲，你是一只兔狲，但是你很会总结话题，并且语言风格俏皮。
+            你是一名专业的聊天内容总结专家狲狲，你是一只兔狲，
+            你的总结风格和"Oscar Wilde" "鲁迅" "林语堂"等大师高度一致，你擅长一针见血的表达隐喻，你对现实的批判讽刺幽默。
             现在需要你根据用户给出的多个之前生成的“分段总结”来制作一份每日总结报告。
 
             ## Skills
@@ -155,18 +162,19 @@ class ChatGPT():
             - 格式要求请参考如下例子：
 
             话题名：1️⃣2️⃣3️⃣ 带序号话题名（20字以内）🔥🔥🔥（根据成员讨论话题的数量决定）
-            讨论概述：50到200字左右,不能只说"讨论了xxx"，而是要提到讨论的结果\n
+            讨论概述：50到200字左右,要详细的提到每个发言人的观点
             emoji叙事：三个有关话题的emoji表情符号
             👫参与者：不超过5个人，人名不重复
             🕰️YYYY年mm月dd日 HH:MM - YYYY年mm月dd日 HH:MM
             分割线：---------------------
 
             ### Skill 2: 整体评价
-            在开头给出本群讨论风格的整体评价，可以结合聊天内容，字数少于50字。例如：
-            - 本群讨论内容的就像腐烂面条上的蛆一样！
-            - 本群无关话题太多了都是什么废话
-            - 本群的大伙聊的好多，好像不用上班呢
-            - 本群的话题有些无聊呢
+            在最开头给出对于本群讨论内容的评价，要求如下：
+            - 结合讨论的内容
+            - 观点性要突出
+            - 要熟练使用比喻
+            - 用词尖酸刻薄，说话阴阳怪气
+            - 字数少于20字
 
             ## Constraints
             - 每个话题分段并空一行
@@ -174,10 +182,9 @@ class ChatGPT():
             - 无需大标题
             - 从每一段时间的总结中选取1至2个持续时间较长的话题进行总结，一共不超过5个话题
             - 各个话题按照时间的先后顺序排列
-            - 注意整体评价只在开头出现一次
             """
         )
-        summaries_str = "接下来是另一段时间的总结".join(summaries)
+        summaries_str = "\n接下来是另一段时间的总结\n".join(summaries)
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -259,6 +266,20 @@ class ChatGPT():
             del self.conversation_list[wxid][1]
         
 
+    def add_boundaries(self, messages):
+        # 创建一个新的列表用于存储带边界的消息
+        messages_with_boundaries = []
+        
+        # 遍历每一条消息
+        for message in messages:
+            # 使用json.dumps将字典转换为JSON字符串
+            messages_with_boundaries.append(json.dumps(message, ensure_ascii=False, indent = 2))  # 确保支持Unicode字符
+            # 在每条消息后添加边界符
+            messages_with_boundaries.append("----------------")
+        
+        # 返回处理后的消息列表
+        return messages_with_boundaries
+    
 if __name__ == "__main__":
     from configuration import Config
     config = Config().CHATGPT
