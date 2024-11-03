@@ -96,6 +96,30 @@ def base64_to_image(base64_str):
         return ''
     return output_path
 
+def convert_png_base64_to_webp(base64_str, quality = 95):
+    if ',' in base64_str:
+        header, encoded = base64_str.split(',', 1)
+    else:
+        header, encoded = '', base64_str
+    
+    png_data = base64.b64decode(encoded)
+    
+    # 使用BytesIO来处理PNG数据
+    with io.BytesIO(png_data) as png_io:
+        # 打开PNG图片
+        with Image.open(png_io) as img:
+            # 确保输出目录存在
+            os.makedirs('images', exist_ok=True)
+            # 获取当前时间并格式化为文件名
+            now = datetime.now()
+            output_filename = now.strftime('%Y%m%d%H%M.webp')
+            # 创建输出文件路径
+            output_path = os.path.join('images', output_filename)
+            # 保存为WebP格式，并设置质量
+            img.save(output_path, format='WEBP', quality=quality)
+            # 返回生成的WebP图片路径
+            return output_path
+
 def post_data_to_server(payload, url, headers=None)->bool:
     # 发送 POST 请求
     response = requests.post(url, json=payload, headers=headers)

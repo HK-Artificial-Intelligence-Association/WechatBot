@@ -35,7 +35,7 @@ from job_mgmt import Job # 作业管理基类，`Robot`类继承自此
 from db import store_message, insert_roomid, store_summary # 导入 db.py 中的 store_message 函数,add_unique_roomids_to_roomid_table 函数
 from db import fetch_messages_from_last_some_hour, fetch_summary_from_db, collect_stats_in_room, fetch_permission_from_db, fetch_roomid_list
 from utils.yaml_utils import update_yaml
-from tools import fetch_news_json, base64_to_image, post_data_to_server
+from tools import fetch_news_json, base64_to_image, post_data_to_server, fetch_article_content, convert_png_base64_to_webp
 __version__ = "39.0.10.1" # 版本号
 
 
@@ -660,7 +660,8 @@ class Robot(Job):#robot类继承自job类
                 print(f"发送{new['content']}")
                 self.sendTextMsg(new['content'], new['receiver'])
             elif new['type'] == "image":
-                path=base64_to_image(new['base64']) # 将base64编码的图片保存为文件,并得到相对路径
+                path = convert_png_base64_to_webp(new['base64'])# 将base64编码的图片保存为文件,并得到相对路径
+                # path=base64_to_image(new['base64'])
                 abspath = os.path.abspath(path) # 转为绝对路径
                 self.wcf.send_image(abspath, new['receiver'])
                 print(f"成功发送图片")
