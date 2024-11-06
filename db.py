@@ -236,13 +236,15 @@ def fetch_messages_from_last_some_hour(roomid,time_hours):
                 content, sender_id, timestamp = row
                 readable_time = datetime.fromtimestamp(timestamp).strftime('%Y年%m月%d日 %H:%M:%S')
                 content = contentFilter(content)#过滤掉xml
-                message = {
-                    "content": content,
-                    "sender_id": sender_id,
-                    "time": readable_time
-                }
-                messages.append(message)
-                print(f"内容: {content}, 发送者ID: {sender_id}, 时间: {readable_time}")
+                if content != '':
+                    message = {
+                        "sender_id": sender_id,
+                        "content": content,
+                        "time": readable_time
+                    }
+                    messages.append(message)
+                    print(f"发送者ID: {sender_id}, 内容: {content}, 时间: {readable_time}")
+                else: print("过滤掉空消息")
         else:
             print(f"过去{time_hours}小时内没有消息。")
             return []

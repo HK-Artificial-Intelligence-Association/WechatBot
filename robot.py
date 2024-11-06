@@ -357,8 +357,8 @@ class Robot(Job):#robot类继承自job类
                 self.sendTextMsg(summary, msg.roomid, msg.sender)
                 self.sendTextMsg(f"本群总结调用次数还剩{self.calltime}次", msg.roomid, msg.sender)
             else:
-                self.sendTextMsg(summary, msg.sender)
-                self.sendTextMsg(f"本群总结调用次数还剩{self.calltime}次", msg.sender)
+                self.sendTextMsg(summary, msg.roomid, msg.sender)
+                self.sendTextMsg(f"本群总结调用次数还剩{self.calltime}次", msg.roomid, msg.sender)
             self.calltime -= 1 # 自减并提示 后续需要加入大于0判断以及每日重置
         else:
             print("过去2小时内没有足够的消息来生成总结。", msg.sender)

@@ -14,10 +14,12 @@ from datetime import datetime
 def is_xml(content, threshold=15):
     # 计算符号 "<"、">" 和 "/" 的数量
     num_symbols = content.count('<') + content.count('>') + content.count('/')
-    return num_symbols > threshold
+    if (num_symbols > threshold) or ('<?xml' in content):
+        return True
+    else: return False
 
 def contentFilter(content):
-    # 尝试解析 content，如果能够解析则说明是xml代码，如果解析失败则认为是普通文本
+    # 判断是否为xml代码
     if is_xml(content):
         # 检查是否包含 "img"
         if "<img" in content:
