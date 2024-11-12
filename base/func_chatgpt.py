@@ -265,7 +265,59 @@ class ChatGPT():
             # 删除多余的记录，倒着删，且跳过第一个的系统消息
             del self.conversation_list[wxid][1]
         
+    def get_article_summary(self, article_content:str):
+        article_prompt = '''
+            ## Role: 文章总结专家
+            ## version: 0.1
+            ## Description: 你是一个总结文章的专家
+            ## Goals: 提取每篇文章最关键的核心内容，并生成一篇总结
 
+            ## Constrains:
+            - 除非有充分理由，请不要随意修改和缩减原先JSON中的内容
+            - 如果没有明显的内容重组，直接使用原始值构建文章
+            - 确保输出的日报格式完全符合Output Format
+            - 输出语言为[中文]
+
+            ## Output format:
+            按照以下格式输出文章的总结：
+            {标题}
+            {文章内容}
+            {关键词}
+
+            ## Example
+            这是一个标题
+
+            这里是对文章进行总结之后的内容
+
+            关键词：{关键词1}，{关键词2}，{关键词3}
+
+            ## Workflow: 
+            - 阅读输入的文章内容
+            - 给这篇文章取一个标题
+            - 提炼出文章的核心内容与观点，生成文章总结
+            - 生成具有代表性的关键词
+            - 严格按照Output format输出
+        '''
+        try:
+            rsp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": article_prompt},
+                    {"role": "user", "content": article_content}
+                ],
+                temperature=0
+            )
+            article_summary = rsp.choices[0].message.content
+        except AuthenticationError:
+            self.LOG.error("OpenAI API 认证失败，请检查 API 密钥是否正确")
+        except APIConnectionError:
+            self.LOG.error("无法连接到 OpenAI API，请检查网络连接")
+        except APIError as e1:
+            self.LOG.error(f"OpenAI API 返回了错误：{str(e1)}")
+        except Exception as e0:
+            self.LOG.error(f"发生未知错误：{str(e0)}")
+        return article_summary
+    
     def add_boundaries(self, messages):
         # 创建一个新的列表用于存储带边界的消息
         messages_with_boundaries = []

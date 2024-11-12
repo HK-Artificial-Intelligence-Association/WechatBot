@@ -68,7 +68,8 @@ def create_database():
         chat BOOLEAN DEFAULT FALSE,
         autoSummary BOOLEAN DEFAULT FALSE,
         callSummary BOOLEAN DEFAULT FALSE,
-        periodStat BOOLEAN DEFAULT FALSE
+        periodStat BOOLEAN DEFAULT FALSE,
+        articleSummary BOOLEAN DEFAULT FALSE
     )
     ''')
 
@@ -364,7 +365,7 @@ def fetch_permission_from_db():
     '''从数据库中获取房间权限'''
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT roomid, admin, chat, autoSummary, callSummary, periodStat FROM permission")
+    cursor.execute("SELECT roomid, admin, chat, autoSummary, callSummary, periodStat, articleSummary FROM permission")
 
     results = cursor.fetchall()
     
@@ -375,7 +376,8 @@ def fetch_permission_from_db():
             'chat': bool(result[2]),
             'autoSummary': bool(result[3]),
             'callSummary': bool(result[4]),
-            'periodStat': bool(result[5])
+            'periodStat': bool(result[5]),
+            'articleSummary': bool(result[6])
         }
     
     conn.close()

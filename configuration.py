@@ -42,7 +42,7 @@ class Config(object):
         self.XINGHUO_WEB = yconfig.get("xinghuo_web", {})
         self.CHATGLM = yconfig.get("chatglm", {})
         self.BardAssistant = yconfig.get("bard", {})
-        self.ZhiPu = yconfig.get("zhipu", {})
+        self.ZHIPU = yconfig.get("zhipu", {})
         self.DEEPSEEK = yconfig.get("deepseek", {})
         #get 方法用于从配置字典中读取可选的配置项，如果这些项不存在，它将返回一个空字典而不是引发错误。
 

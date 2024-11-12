@@ -39,7 +39,7 @@ class Qwen():
         return False
     
     def get_summary1(self, messages,roomid):
-        """根据微信群聊消息列表生成总结，由一名经验丰富的大学物理教授执行。"""
+        """根据微信群聊消息列表生成总结"""
     
         # 构建新的提示词
         summary_prompt = (
@@ -76,7 +76,7 @@ class Qwen():
     
 
     def get_summary2(self, messages,roomid):
-        """根据微信群聊消息列表生成总结，由一名经验丰富的大学物理教授执行。"""
+        """根据微信群聊消息列表生成总结"""
     
         # 构建新的提示词
         summary_prompt = (

@@ -35,7 +35,7 @@ from job_mgmt import Job # 作业管理基类，`Robot`类继承自此
 from db import store_message, insert_roomid, store_summary # 导入 db.py 中的 store_message 函数,add_unique_roomids_to_roomid_table 函数
 from db import fetch_messages_from_last_some_hour, fetch_summary_from_db, collect_stats_in_room, fetch_permission_from_db, fetch_roomid_list
 from utils.yaml_utils import update_yaml
-from tools import fetch_news_json, base64_to_image, post_data_to_server, fetch_article_content, convert_png_base64_to_webp
+from tools import *
 __version__ = "39.0.10.1" # 版本号
 
 
@@ -237,12 +237,16 @@ class Robot(Job):#robot类继承自job类
                 "2. /总结1 - 获取2小时内分话题式聊天总结\n"
                 "3. /总结2 - 获取2小时内不话题式聊天总结\n"
                 "4. /聊天统计 - 获取聊天数据统计\n"
-                "5. /getid - 获取当前群聊或用户的roomid与wxid\n"
-                "6. 后续功能还在开发中，敬请期待！\n",
+                "5. /文章总结 url - 获取文章的摘要\n"
+                "6. /getid - 获取当前群聊或用户的roomid与wxid\n"
+                "7. 后续功能还在开发中，敬请期待！\n",
                 msg_dict["roomid"]
             )
 
-        
+        elif is_card_article(msg.content):
+            if self.hasPermission(msg.roomid, "articleSummary") or self.hasPermission(msg.sender, "articleSummary"):
+                print("开始执行卡片文章总结")
+                self.handle_card_article_summary_request(msg)
         elif (msg.is_at(self.wxid) and msg_dict['is_group'] == 1) or msg_dict['is_group'] != 1:
             content = msg.content.strip()
             # print(content)
@@ -260,6 +264,9 @@ class Robot(Job):#robot类继承自job类
             elif "/change" in content:
                 if self.hasPermission(msg.roomid, "admin") or self.hasPermission(msg.sender, "admin"):
                     self.handle_change_request(msg)
+            elif "/文章总结" in content:
+                if self.hasPermission(msg.roomid, "articleSummary") or self.hasPermission(msg.sender, "articleSummary"):
+                    self.handle_url_article_summary_request(msg)
             elif "/getid" in content:
                 self.handle_get_id_request(msg)
             elif "/聊天统计" in content:
@@ -797,3 +804,42 @@ class Robot(Job):#robot类继承自job类
             print(f"房间{roomid}未拥有{permission_type}权限")
             return False
 
+    def handle_url_article_summary_request(self, msg: WxMsg):
+        '''处理url形式的文章总结请求'''
+        match = re.search(r"https?://[^\s]+", msg.content)
+        if match:
+            article_url = match.group()
+            # 如果URL存在，则抓取文章内容
+            article_content = fetch_url_article_content(article_url)
+        else:
+            print("No valid URL found in the message.")
+            return None
+
+        if article_content is None:
+            print("Failed to extract article content.")
+            return None
+        else:
+            article_summary = self.chat.get_article_summary(article_content)
+            if msg.from_group():
+                self.sendTextMsg(article_summary, msg.roomid)
+            else:
+                self.sendTextMsg(article_summary, msg.sender)
+
+    def handle_card_article_summary_request(self, msg: WxMsg):
+        '''处理卡片形式的文章总结请求'''
+        # 通过xml获取分享用户名与头像，公众号名与头像，分享时间，文章url
+        info = fetch_info_from_card_article(msg.content)
+        if info['url'] is None:
+            print("No url found in the message.")
+        # 提取文章内容
+        article_content = fetch_card_article_content(info['url'])
+        # 交给ai总结
+        if article_content is None:
+            print("Failed to extract article content.")
+            return None
+        else:
+            article_summary = self.chat.get_article_summary(article_content)
+            if msg.from_group():
+                self.sendTextMsg(article_summary, msg.roomid)
+            else:
+                self.sendTextMsg(article_summary, msg.sender)
