@@ -46,7 +46,8 @@ def contentFilter(content):
             referredname = displayname_match.group(1) if displayname_match else ""
 
             # 合并提取的内容
-            content = f'针对{referredname}的消息"{refermsg}"进行了回复：{reply}'.strip()
+            #content = f'针对{referredname}的消息"{refermsg}"进行了回复：{reply}'.strip()
+            content = f'{reply}。该消息引用了{referredname}的消息,{referredname}的消息内容为：{refermsg}'.strip()
             print("过滤成功")
         else:
             content = ""

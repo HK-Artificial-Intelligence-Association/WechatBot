@@ -213,7 +213,7 @@ def fetch_messages_from_last_two_hour(roomid):
         conn.close()
 
 # 调用指定时间内的消息
-def fetch_messages_from_last_some_hour(roomid,time_hours):
+def fetch_messages_from_last_some_hour(roomid, time_hours):
     """从数据库中获取过去几个小时内的所有消息，并打印获取到的消息内容"""
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
