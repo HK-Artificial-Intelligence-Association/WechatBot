@@ -831,6 +831,7 @@ class Robot(Job):#robot类继承自job类
         info = fetch_info_from_card_article(msg.content)
         if info['url'] is None:
             print("No url found in the message.")
+            return None
         # 提取文章内容
         article_content = fetch_card_article_content(info['url'])
         # 交给ai总结
