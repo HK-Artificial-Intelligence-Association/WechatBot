@@ -577,8 +577,8 @@ class Robot(Job):#robot类继承自job类
             messages_withwxid = fetch_messages_from_last_some_hour(receiver, time_hours)
             if not messages_withwxid:continue # 如果没有聊天记录则跳过
             messages = []
+            valid_name = set()
             for message_withwxid in messages_withwxid:
-                valid_name = set()
                 sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver)
                 if sender == "": # 将messages里的wxid替换成wx昵称
                     sender = message_withwxid["sender_id"]
@@ -840,7 +840,21 @@ class Robot(Job):#robot类继承自job类
             return None
         else:
             article_summary = self.chat.get_article_summary(article_content)
+            card_data = struct_summary_to_dict(article_summary)
+            card_data['officialName'] = info['sourcedisplayname']
             if msg.from_group():
-                self.sendTextMsg(article_summary, msg.roomid)
+                card_data['username'] = self.wcf.get_alias_in_chatroom(info['fromusername'], msg.roomid)
+                generate_article_summary_card(card_data)
+                abspath = os.path.abspath(generate_article_summary_card(card_data))
+                self.wcf.send_image(abspath, msg.roomid)
             else:
-                self.sendTextMsg(article_summary, msg.sender)
+                card_data['username'] = info['fromusername']
+                generate_article_summary_card(card_data)
+                abspath = generate_article_summary_card(card_data)
+                self.wcf.send_image(abspath, msg.sender)
+            # if msg.from_group():
+            #     self.sendTextMsg(article_summary, msg.roomid)
+            # else:
+            #     self.sendTextMsg(article_summary, msg.sender)
+    
+

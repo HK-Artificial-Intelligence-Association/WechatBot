@@ -47,17 +47,11 @@ def main(chat_type: int):
     # 设置定时任务，每天特定时间执行特定任务
     # 注意onEveryTime函数的参数是可调用对象，即函数或方法。
     
-    # 每天8点收集23-8群聊摘要
-    robot.onEveryTime("08:00", robot.saveAutoSummary, time_hours=9)
-    # 每天12点收集8-12群聊摘要
-    robot.onEveryTime("12:00", robot.saveAutoSummary, time_hours=4)
-    # 每天19点收集12-17群聊摘要
-    robot.onEveryTime("19:00", robot.saveAutoSummary, time_hours=7)
-    # 每天23点收集17-23群聊摘要
-    robot.onEveryTime("23:00", robot.saveAutoSummary, time_hours=4)
-    # 每天24点发送每日聊天总结
-    robot.onEveryTime("20:00", robot.sendDailySummary)
-    # 测试
+    # 轮询GET请求测试
+    # robot.startProcessing(url='http://127.0.0.1:5000/data.json')
+    # 每天20点发送每日聊天总结
+    robot.onEveryTime("20:00", robot.sendAutoSummary, time_hours=24)
+
     # robot.postReceiverList(url='-----------------')# POST请求测试
     # robot.saveAutoSummary(time_hours = 4)
 

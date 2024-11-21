@@ -4,12 +4,15 @@ import base64
 from PIL import Image
 import io
 import os
+import jinja2
+from pathlib import Path
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.options import Options
 import time
 import xml.etree.ElementTree as ET
 
@@ -198,15 +201,17 @@ def fetch_card_article_content(url):
         time.sleep(5)  # 等待页面完全加载
 
         try:
-            # 尝试找到“去验证”按钮并点击
-            verify_button = driver.find_element(By.ID, "js_verify")
-            ActionChains(driver).move_to_element(verify_button).click(verify_button).perform()
-            print("点击了验证按钮")
+            flag = 3 # 重试次数
+            while flag:
+                # 尝试找到“去验证”按钮并点击
+                verify_button = driver.find_element(By.ID, "js_verify")
+                ActionChains(driver).move_to_element(verify_button).click(verify_button).perform()
+                print("点击了验证按钮")
 
-            # 等待验证过程完成
-            time.sleep(5)
+                # 等待验证过程完成
+                time.sleep(5)
+                flag-=1
         except:
-            # 如果未找到验证按钮，直接获取页面内容
             print("未找到验证按钮，直接获取页面内容")
 
         # 使用 BeautifulSoup 解析页面源代码
@@ -240,8 +245,119 @@ def fetch_info_from_card_article(xml_string):
         return {
             "title": title,
             "url": url,
-            "sourcedisplayname": sourcedisplayname,
-            "fromusername": fromusername
+            "sourcedisplayname": sourcedisplayname,# 公众号名称
+            "fromusername": fromusername # 转发者wxid
         }
     except ET.ParseError as e:
         raise ValueError(f"XML 解析错误: {e}")
+    
+def generate_article_summary_card(card_data: dict) -> str:
+    """
+    生成文章卡片图片
+    
+    Args:
+        card_data: dict, 包含以下字段:
+            - title: str, 文章标题
+            - content: str, 文章内容
+            - officialName: str, 公众号名称
+            - username: str, 用户名
+            - keywords: list, 关键词列表
+            - date: dict, 包含year和day
+    
+    Returns:
+        str: 生成的图片路径
+    """
+    # 读取HTML模板
+    current_dir = Path(__file__).parent
+    template_path = current_dir / "template.html"
+    
+    # 确保输出目录存在
+    output_dir = current_dir / "images"
+    output_dir.mkdir(exist_ok=True)
+    
+    # 设置jinja2环境
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(current_dir)
+    )
+    template = env.get_template("template.html")
+    
+    # 渲染HTML
+    html_content = template.render(
+        title=card_data['title'],
+        content=card_data['content'],
+        official_name=card_data['officialName'],
+        username=card_data['username'],
+        keywords=card_data['keywords'],
+        year=card_data['date']['year'],
+        day=card_data['date']['day']
+    )
+    
+    # 保存临时HTML文件
+    temp_html_path = output_dir / "temp.html"
+    with open(temp_html_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
+    
+    # 配置Chrome选项
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')  # 无头模式
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument("--disable-gpu")  # 禁用 GPU 加速
+    
+    # 初始化WebDriver
+    driver = webdriver.Chrome(options=chrome_options)
+    
+    try:
+        # 加载HTML文件
+        driver.get(f"file:///{temp_html_path.absolute()}")
+        # 等待特定元素加载完成，而不是固定等待
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "card"))
+        )
+        
+        # 获取卡片元素
+        card = driver.find_element(By.CLASS_NAME, "card")
+        
+        # 生成图片文件名
+        image_name = f"card_{int(time.time())}.webp"
+        image_path = output_dir / image_name
+        
+        # 截图并保存
+        card.screenshot(str(image_path))
+        
+        return str(image_path.relative_to(current_dir))
+    
+    finally:
+        driver.quit()
+        # 清理临时文件
+        if temp_html_path.exists():
+            temp_html_path.unlink()
+
+def struct_summary_to_dict(struct_summary: str) -> dict:
+    '''用于将大模型返回的内容转换成字典'''
+
+    # 提取 title content keywords
+    title = re.search(r'<title>(.*?)</title>', struct_summary).group(1)
+    content = re.search(r'<content>(.*?)</content>', struct_summary, re.S).group(1)
+    keywords = re.search(r'<keywords>(.*?)</keywords>', struct_summary).group(1).split()
+
+    # 获取当前时间
+    current_time = time.localtime()
+    year = current_time.tm_year
+    day = time.strftime("%m/%d", current_time)
+    date = {
+        "year": year,
+        "day": day
+    }
+    # 填充字典
+    card_data = {
+        "title": title,
+        "content": content,
+        "keywords": keywords,
+        "date": date
+    }
+
+    return card_data

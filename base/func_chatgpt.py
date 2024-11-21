@@ -276,16 +276,14 @@ class ChatGPT():
 
             ## Output format:
             按照以下格式输出文章的总结：
-            {标题}
-            {文章内容}
-            {关键词}
+            <title>{标题}</title>
+            <content>{总结的文章内容}</content>
+            <keywords>{关键词}</keywords>
 
             ## Example
-            这是一个标题
-
-            这里是对文章进行总结之后的内容
-
-            关键词：{关键词1}，{关键词2}，{关键词3}
+            <title>这是标题</title>
+            <content>这里是总结的文章内容</content>
+            <keywords>关键词1 关键词2 关键词3</keywords>
 
             ## Workflow: 
             - 阅读输入的文章内容

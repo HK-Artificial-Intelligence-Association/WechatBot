@@ -1,0 +1,184 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: "Microsoft YaHei", sans-serif;
+        background-image: url("https://i.postimg.cc/g0BWbg33/1730214350531.png");
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+      }
+
+      .content {
+          white-space: pre-wrap;
+          text-indent: 2em;
+          line-height: 1.6;
+          color: rgb(9, 247, 255);
+          margin-bottom: 20px;
+      }
+      .card {
+          width: 400px;
+          padding: 20px;
+          border-radius: 10px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          margin: 20px auto;
+          font-family: "Microsoft YaHei", sans-serif;
+      }
+
+      .logo {
+          width: 120px;
+          height: auto;
+          display: block;
+          margin: 0 auto 20px;
+      }
+
+      .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 20px;
+      }
+
+      .user-info {
+          display: flex;
+          align-items: center;
+      }
+
+      .avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          margin-right: 10px;
+      }
+
+      .user-details {
+          display: flex;
+          flex-direction: column;
+      }
+
+      .username {
+          font-weight: bold;
+          margin-bottom: 5px;
+      }
+
+      .share-text {
+          color: #666;
+          font-size: 12px;
+      }
+
+      .date {
+          color: #999;
+          font-size: 14px;
+          text-align: right;
+          position: relative; 
+      }
+
+      .date::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: -10px;
+          height: 100%;
+          width: 3px;
+          background-color: #16A085;
+      }
+
+      .year, .day {
+          display: block;
+      }
+
+      .bubble-container {
+          background-color: #f8f8f8;
+          border-radius: 15px;
+          padding: 20px;
+          margin: 20px 0;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      }
+
+      .title {
+          text-align: center;
+          font-weight: bold;
+          font-size: 18px;
+          margin: 0 0 20px 0;
+          color:#07505A
+      }
+
+      .content {
+          line-height: 1.8;
+          color: #2C3E50;
+          margin-bottom: 20px;
+      }
+
+      .keywords {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-bottom: 0;
+      }
+
+      .keyword {
+          background-color: #fff;
+          padding: 5px 10px;
+          border-radius: 15px;
+          font-size: 12px;
+          color: #666;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+
+      .official-account {
+          display: flex;
+          align-items: center;
+          padding-top: 20px;
+          border-top: 1px solid #eee;
+          margin-top: 20px;
+      }
+
+      .official-avatar {
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          margin-right: 10px;
+      }
+
+      .official-name {
+          color: #333;
+          font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img src="https://i.postimg.cc/ZnBkXF6d/HSAS-logo-transparent.png" alt="Logo" class="logo" />
+      <div class="bubble-container">
+        <div class="header">
+          <div class="user-info">
+            <img src="https://i.postimg.cc/qMJwK0GY/20241029151606.jpg" alt="用户头像" class="avatar" />
+            <div class="user-details">
+              <span class="username">{{ username }}</span>
+              <span class="share-text">生成了一张总结卡片</span>
+            </div>
+          </div>
+          <span class="date">
+            <span class="year">{{ year }}</span>
+            <span class="day">{{ day }}</span>
+          </span>
+        </div>
+
+        <h1 class="title">{{ title }}</h1>
+
+        <div class="content">{{ content }}</div>
+
+        <div class="keywords">
+          {% for keyword in keywords %}
+          <span class="keyword">{{ keyword }}</span>
+          {% endfor %}
+        </div>
+        <div class="official-account">
+          <span class="official-name">发布于 {{ official_name }}</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html> 
