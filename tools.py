@@ -72,6 +72,7 @@ def fetch_news_json(url):
         return []
 
 def base64_to_image(base64_str):
+    '''base64解码并发送'''
     output_path = f"images" # 保存图片的路径
     try:
         if ',' in base64_str:
@@ -110,6 +111,7 @@ def base64_to_image(base64_str):
     return output_path
 
 def convert_png_base64_to_webp(base64_str, quality = 95):
+    '''将图片转成webp'''
     if ',' in base64_str:
         header, encoded = base64_str.split(',', 1)
     else:
@@ -125,13 +127,49 @@ def convert_png_base64_to_webp(base64_str, quality = 95):
             os.makedirs('images', exist_ok=True)
             # 获取当前时间并格式化为文件名
             now = datetime.now()
-            output_filename = now.strftime('%Y%m%d%H%M.webp')
+            output_filename = now.strftime('%Y%m%d%H%M%S.webp')
             # 创建输出文件路径
             output_path = os.path.join('images', output_filename)
             # 保存为WebP格式，并设置质量
             img.save(output_path, format='WEBP', quality=quality)
             # 返回生成的WebP图片路径
             return output_path
+
+def base64_image_compress(base64_str, quality = 95):
+    '''压缩文件'''
+    if ',' in base64_str:
+        header, encoded = base64_str.split(',', 1)
+    else:
+        header, encoded = '', base64_str
+    
+    # 解码Base64数据
+    png_data = base64.b64decode(encoded)
+    
+    # 使用BytesIO来处理PNG数据
+    with io.BytesIO(png_data) as png_io:
+        # 打开PNG图片
+        with Image.open(png_io) as img:
+            # 确保输出目录存在
+            os.makedirs('images', exist_ok=True)
+            
+            # 转换为WebP格式
+            webp_io = io.BytesIO()
+            img.save(webp_io, format='WEBP', quality=quality)
+            webp_io.seek(0)
+            
+            # 打开WebP图片并转换为JPEG格式
+            with Image.open(webp_io) as webp_img:
+                # 获取当前时间并格式化为文件名
+                now = datetime.now()
+                output_filename = now.strftime('%Y%m%d%H%M%S.jpg')
+                # 创建输出文件路径
+                output_path = os.path.join('images', output_filename)
+                # 保存为JPEG格式，使用默认质量
+                webp_img.convert('RGB').save(output_path, format='JPEG')
+                
+                # 返回生成的JPEG图片路径
+                return output_path
+    return output_path
 
 def post_data_to_server(payload, url, headers=None)->bool:
     # 发送 POST 请求

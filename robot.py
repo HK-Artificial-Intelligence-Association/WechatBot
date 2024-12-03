@@ -545,8 +545,8 @@ class Robot(Job):#robot类继承自job类
             messages_withwxid = fetch_messages_from_last_some_hour(roomid = receiver, time_hours=time_hours)
             # 将messages里的wxid替换成wx昵称
             messages = []
+            valid_name = set()
             for message_withwxid in messages_withwxid:
-                valid_name = set()
                 sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver)
                 if sender == "": # 将messages里的wxid替换成wx昵称
                     sender = message_withwxid["sender_id"]
@@ -569,7 +569,7 @@ class Robot(Job):#robot类继承自job类
 
     def saveAutoSummary(self, time_hours=2):
         """
-        生成并保存聊天总结 目前只用深度求索
+        生成并保存聊天总结
         """
         receivers = fetch_roomid_list("autoSummary")  # 指定总结群聊，可以根据需要进行修改
         if not receivers: print("没有指定进行总结的群聊")
@@ -667,7 +667,9 @@ class Robot(Job):#robot类继承自job类
                 print(f"发送{new['content']}")
                 self.sendTextMsg(new['content'], new['receiver'])
             elif new['type'] == "image":
-                path = convert_png_base64_to_webp(new['base64'])# 将base64编码的图片保存为文件,并得到相对路径
+                # 将base64编码的图片保存为文件,并得到相对路径
+                path = base64_image_compress(new['base64'])
+                # path = convert_png_base64_to_webp(new['base64'])
                 # path=base64_to_image(new['base64'])
                 abspath = os.path.abspath(path) # 转为绝对路径
                 self.wcf.send_image(abspath, new['receiver'])
