@@ -836,24 +836,26 @@ class Robot(Job):#robot类继承自job类
             return None
         # 提取文章内容
         article_content = fetch_card_article_content(info['url'])
+        print("文章内容提取完毕")
         # 交给ai总结
         if article_content is None:
             print("Failed to extract article content.")
             return None
         else:
             article_summary = self.chat.get_article_summary(article_content)
+            print("总结生成完毕")
             card_data = struct_summary_to_dict(article_summary)
             card_data['officialName'] = info['sourcedisplayname']
             if msg.from_group():
                 card_data['username'] = self.wcf.get_alias_in_chatroom(info['fromusername'], msg.roomid)
-                generate_article_summary_card(card_data)
                 abspath = os.path.abspath(generate_article_summary_card(card_data))
                 self.wcf.send_image(abspath, msg.roomid)
+                print("卡片生成完毕")
             else:
                 card_data['username'] = info['fromusername']
-                generate_article_summary_card(card_data)
                 abspath = generate_article_summary_card(card_data)
                 self.wcf.send_image(abspath, msg.sender)
+                print("卡片生成完毕")
             # if msg.from_group():
             #     self.sendTextMsg(article_summary, msg.roomid)
             # else:

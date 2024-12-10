@@ -341,6 +341,7 @@ def generate_article_summary_card(card_data: dict) -> str:
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument("--disable-gpu")  # 禁用 GPU 加速
+    chrome_options.add_argument('--allow-insecure-localhost')  # 允许不安全的本地连接
     
     # 初始化WebDriver
     driver = webdriver.Chrome(options=chrome_options)
@@ -359,8 +360,16 @@ def generate_article_summary_card(card_data: dict) -> str:
         # 获取卡片元素
         card = driver.find_element(By.CLASS_NAME, "card")
         
+        # 获取实际内容高度并设置窗口大小
+        total_height = driver.execute_script("return document.getElementsByClassName('card')[0].scrollHeight")
+        total_width = driver.execute_script("return document.getElementsByClassName('card')[0].scrollWidth")
+        driver.set_window_size(total_width + 100, total_height + 200)  # 添加一些边距
+        
+        # 等待一小段时间确保渲染完成
+        time.sleep(1)
+
         # 生成图片文件名
-        image_name = f"card_{int(time.time())}.webp"
+        image_name = f"card_{int(time.time())}.png"
         image_path = output_dir / image_name
         
         # 截图并保存
