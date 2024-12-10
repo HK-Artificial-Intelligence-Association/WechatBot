@@ -427,6 +427,8 @@ class Robot(Job):#robot类继承自job类
                 if msg.content == "^更新$":
                     self.config.reload()
                     self.LOG.info("已更新")
+            elif msg.sender.startswith('gh_'): # 过滤关注公众号时 公众号的消息
+                return
             else:
                 self.toChitchat(msg)  # 闲聊
 
