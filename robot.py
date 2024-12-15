@@ -855,7 +855,7 @@ class Robot(Job):#robot类继承自job类
                 print("卡片生成完毕")
             else:
                 card_data['username'] = info['fromusername']
-                abspath = generate_article_summary_card(card_data)
+                abspath = os.path.abspath(generate_article_summary_card(card_data))
                 self.wcf.send_image(abspath, msg.sender)
                 print("卡片生成完毕")
             # if msg.from_group():

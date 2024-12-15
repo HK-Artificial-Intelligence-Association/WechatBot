@@ -11,140 +11,154 @@
         background-attachment: fixed;
       }
 
+
       .content {
           white-space: pre-wrap;
-          text-indent: 2em;
-          line-height: 1.6;
-          color: rgb(9, 247, 255);
-          margin-bottom: 20px;
+          text-indent: 2em; /* 翻倍 */
+          line-height: 2.0; /* 翻倍 */
+          color: #2C3E50;
+          margin-bottom: 40px; /* 翻倍 */
+          font-size: 34px;
       }
       .card {
-          width: 400px;
-          padding: 20px;
-          border-radius: 10px;
-          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-          margin: 20px auto;
+          width: 800px; /* 翻倍 */
+          padding: 40px; /* 翻倍 */
+          border-radius: 20px; /* 翻倍 */
+          box-shadow: 0 8px 16px rgba(0,0,0,0.1); /* 翻倍 */
+          margin: 40px auto; /* 翻倍 */
           font-family: "Microsoft YaHei", sans-serif;
       }
 
+
       .logo {
-          width: 120px;
+          width: 240px; /* 翻倍 */
           height: auto;
           display: block;
-          margin: 0 auto 20px;
+          margin: 0 auto 40px; /* 翻倍 */
       }
+
 
       .header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 20px;
+          margin-bottom: 40px; /* 翻倍 */
       }
+
 
       .user-info {
           display: flex;
           align-items: center;
       }
 
+
       .avatar {
-          width: 40px;
-          height: 40px;
+          width: 80px; /* 翻倍 */
+          height: 80px; /* 翻倍 */
           border-radius: 50%;
-          margin-right: 10px;
+          margin-right: 20px; /* 翻倍 */
       }
+
 
       .user-details {
           display: flex;
           flex-direction: column;
       }
 
+
       .username {
           font-weight: bold;
-          margin-bottom: 5px;
+          margin-bottom: 10px; /* 翻倍 */
+          font-size: 34px; /* 翻倍 */
       }
+
 
       .share-text {
           color: #666;
-          font-size: 12px;
+          font-size: 24px; /* 翻倍 */
       }
+
 
       .date {
           color: #999;
-          font-size: 14px;
+          font-size: 28px; /* 翻倍 */
           text-align: right;
           position: relative; 
       }
+
 
       .date::after {
           content: '';
           position: absolute;
           top: 0;
-          right: -10px;
+          right: -20px; /* 翻倍 */
           height: 100%;
-          width: 3px;
+          width: 6px; /* 翻倍 */
           background-color: #16A085;
       }
+
 
       .year, .day {
           display: block;
       }
 
+
       .bubble-container {
           background-color: #f8f8f8;
-          border-radius: 15px;
-          padding: 20px;
-          margin: 20px 0;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          border-radius: 30px; /* 翻倍 */
+          padding: 40px; /* 翻倍 */
+          margin: 40px 0; /* 翻倍 */
+          box-shadow: 0 4px 8px rgba(0,0,0,0.05); /* 翻倍 */
       }
+
 
       .title {
           text-align: center;
           font-weight: bold;
-          font-size: 18px;
-          margin: 0 0 20px 0;
-          color:#07505A
+          font-size: 38px; /* 翻倍 */
+          margin: 0 0 40px 0; /* 翻倍 */
+          color: #07505A;
       }
 
-      .content {
-          line-height: 1.8;
-          color: #2C3E50;
-          margin-bottom: 20px;
-      }
 
       .keywords {
           display: flex;
           flex-wrap: wrap;
-          gap: 10px;
+          gap: 20px; /* 翻倍 */
           margin-bottom: 0;
       }
 
+
       .keyword {
           background-color: #fff;
-          padding: 5px 10px;
-          border-radius: 15px;
-          font-size: 12px;
+          padding: 10px 20px; /* 翻倍 */
+          border-radius: 30px; /* 翻倍 */
+          font-size: 28px; /* 翻倍 */
           color: #666;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 6px rgba(0,0,0,0.1); /* 翻倍 */
       }
+
 
       .official-account {
           display: flex;
           align-items: center;
-          padding-top: 20px;
+          padding-top: 40px; /* 翻倍 */
           border-top: 1px solid #eee;
-          margin-top: 20px;
+          margin-top: 40px; /* 翻倍 */
       }
 
+
       .official-avatar {
-          width: 30px;
-          height: 30px;
+          width: 60px; /* 翻倍 */
+          height: 60px; /* 翻倍 */
           border-radius: 50%;
-          margin-right: 10px;
+          margin-right: 20px; /* 翻倍 */
       }
+
 
       .official-name {
           color: #333;
-          font-size: 14px;
+          font-size: 28px; /* 翻倍 */
       }
     </style>
   </head>
@@ -166,9 +180,12 @@
           </span>
         </div>
 
+
         <h1 class="title">{{ title }}</h1>
 
+
         <div class="content">{{ content }}</div>
+
 
         <div class="keywords">
           {% for keyword in keywords %}
@@ -181,4 +198,4 @@
       </div>
     </div>
   </body>
-</html> 
+</html>
