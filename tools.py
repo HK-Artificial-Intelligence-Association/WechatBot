@@ -254,14 +254,35 @@ def fetch_card_article_content(url):
 
         # 使用 BeautifulSoup 解析页面源代码
         soup = BeautifulSoup(driver.page_source, 'html.parser')
+        seen_texts = set()  # 用于存储已处理的文本
+        paragraphs = []
         
-        # 假设文章内容在 <p> 标签内，可以根据实际网页结构调整
-        paragraphs = soup.find_all('p')
+        # 优先查找主要内容区域
+        main_content = soup.find('div', id='js_content') or soup.find('div', class_='rich_media_content')
         
-        # 提取并组合所有 <p> 标签内的文字
-        article_content = '\n'.join([p.get_text() for p in paragraphs])
-        # 提取并返回文章内容
-        return article_content
+        if main_content:
+            # 只处理主要内容区域内的文本
+            for element in main_content.stripped_strings:
+                text = element.strip()
+                # 增加更严格的文本过滤条件
+                if (text and 
+                    len(text) > 5 and  # 忽略过短的文本
+                    text not in seen_texts and  # 检查重复
+                    not text.startswith('javascript:') and  # 过滤js代码
+                    not any(char in text for char in ['<', '>', '{', '}'])):  # 过滤代码片段
+                    
+                    # 规范化空白字符
+                    text = ' '.join(text.split())
+                    paragraphs.append(text)
+                    seen_texts.add(text)
+        
+        # 如果没有找到内容,返回None
+        if not paragraphs:
+            return None
+            
+        # 合并段落并添加适当的分隔
+        atricle_content =  '\n'.join(paragraphs)
+        return atricle_content
 
     finally:
         # 关闭浏览器

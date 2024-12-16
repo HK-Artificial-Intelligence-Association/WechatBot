@@ -832,6 +832,7 @@ class Robot(Job):#robot类继承自job类
     def handle_card_article_summary_request(self, msg: WxMsg):
         '''处理卡片形式的文章总结请求'''
         # 通过xml获取分享用户名与头像，公众号名与头像，分享时间，文章url
+        print("正在解析卡片信息")
         info = fetch_info_from_card_article(msg.content)
         if info['url'] is None:
             print("No url found in the message.")
