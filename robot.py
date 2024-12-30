@@ -35,7 +35,7 @@ from job_mgmt import Job # 作业管理基类，`Robot`类继承自此
 from db import store_message, insert_roomid, store_summary # 导入 db.py 中的 store_message 函数,add_unique_roomids_to_roomid_table 函数
 from db import fetch_messages_from_last_some_hour, fetch_summary_from_db, collect_stats_in_room, fetch_permission_from_db, fetch_roomid_list
 from utils.yaml_utils import update_yaml
-from tools import fetch_news_json, base64_to_image, post_data_to_server
+from tools import *
 __version__ = "39.0.10.1" # 版本号
 
 
@@ -237,12 +237,16 @@ class Robot(Job):#robot类继承自job类
                 "2. /总结1 - 获取2小时内分话题式聊天总结\n"
                 "3. /总结2 - 获取2小时内不话题式聊天总结\n"
                 "4. /聊天统计 - 获取聊天数据统计\n"
-                "5. /getid - 获取当前群聊或用户的roomid与wxid\n"
-                "6. 后续功能还在开发中，敬请期待！\n",
+                "5. /文章总结 url - 获取文章的摘要\n"
+                "6. /getid - 获取当前群聊或用户的roomid与wxid\n"
+                "7. 后续功能还在开发中，敬请期待！\n",
                 msg_dict["roomid"]
             )
 
-        
+        elif is_card_article(msg.content):
+            if self.hasPermission(msg.roomid, "articleSummary") or self.hasPermission(msg.sender, "articleSummary"):
+                print("开始执行卡片文章总结")
+                self.handle_card_article_summary_request(msg)
         elif (msg.is_at(self.wxid) and msg_dict['is_group'] == 1) or msg_dict['is_group'] != 1:
             content = msg.content.strip()
             # print(content)
@@ -260,6 +264,9 @@ class Robot(Job):#robot类继承自job类
             elif "/change" in content:
                 if self.hasPermission(msg.roomid, "admin") or self.hasPermission(msg.sender, "admin"):
                     self.handle_change_request(msg)
+            elif "/文章总结" in content:
+                if self.hasPermission(msg.roomid, "articleSummary") or self.hasPermission(msg.sender, "articleSummary"):
+                    self.handle_url_article_summary_request(msg)
             elif "/getid" in content:
                 self.handle_get_id_request(msg)
             elif "/聊天统计" in content:
@@ -357,8 +364,8 @@ class Robot(Job):#robot类继承自job类
                 self.sendTextMsg(summary, msg.roomid, msg.sender)
                 self.sendTextMsg(f"本群总结调用次数还剩{self.calltime}次", msg.roomid, msg.sender)
             else:
-                self.sendTextMsg(summary, msg.sender)
-                self.sendTextMsg(f"本群总结调用次数还剩{self.calltime}次", msg.sender)
+                self.sendTextMsg(summary, msg.roomid, msg.sender)
+                self.sendTextMsg(f"本群总结调用次数还剩{self.calltime}次", msg.roomid, msg.sender)
             self.calltime -= 1 # 自减并提示 后续需要加入大于0判断以及每日重置
         else:
             print("过去2小时内没有足够的消息来生成总结。", msg.sender)
@@ -420,6 +427,8 @@ class Robot(Job):#robot类继承自job类
                 if msg.content == "^更新$":
                     self.config.reload()
                     self.LOG.info("已更新")
+            elif msg.sender.startswith('gh_'): # 过滤关注公众号时 公众号的消息
+                return
             else:
                 self.toChitchat(msg)  # 闲聊
 
@@ -538,8 +547,8 @@ class Robot(Job):#robot类继承自job类
             messages_withwxid = fetch_messages_from_last_some_hour(roomid = receiver, time_hours=time_hours)
             # 将messages里的wxid替换成wx昵称
             messages = []
+            valid_name = set()
             for message_withwxid in messages_withwxid:
-                valid_name = set()
                 sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver)
                 if sender == "": # 将messages里的wxid替换成wx昵称
                     sender = message_withwxid["sender_id"]
@@ -562,7 +571,7 @@ class Robot(Job):#robot类继承自job类
 
     def saveAutoSummary(self, time_hours=2):
         """
-        生成并保存聊天总结 目前只用深度求索
+        生成并保存聊天总结
         """
         receivers = fetch_roomid_list("autoSummary")  # 指定总结群聊，可以根据需要进行修改
         if not receivers: print("没有指定进行总结的群聊")
@@ -570,8 +579,8 @@ class Robot(Job):#robot类继承自job类
             messages_withwxid = fetch_messages_from_last_some_hour(receiver, time_hours)
             if not messages_withwxid:continue # 如果没有聊天记录则跳过
             messages = []
+            valid_name = set()
             for message_withwxid in messages_withwxid:
-                valid_name = set()
                 sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver)
                 if sender == "": # 将messages里的wxid替换成wx昵称
                     sender = message_withwxid["sender_id"]
@@ -660,7 +669,10 @@ class Robot(Job):#robot类继承自job类
                 print(f"发送{new['content']}")
                 self.sendTextMsg(new['content'], new['receiver'])
             elif new['type'] == "image":
-                path=base64_to_image(new['base64']) # 将base64编码的图片保存为文件,并得到相对路径
+                # 将base64编码的图片保存为文件,并得到相对路径
+                path = base64_image_compress(new['base64'])
+                # path = convert_png_base64_to_webp(new['base64'])
+                # path=base64_to_image(new['base64'])
                 abspath = os.path.abspath(path) # 转为绝对路径
                 self.wcf.send_image(abspath, new['receiver'])
                 print(f"成功发送图片")
@@ -796,3 +808,59 @@ class Robot(Job):#robot类继承自job类
             print(f"房间{roomid}未拥有{permission_type}权限")
             return False
 
+
+    def handle_url_article_summary_request(self, msg: WxMsg):
+        '''处理url形式的文章总结请求'''
+        match = re.search(r"https?://[^\s]+", msg.content)
+        if match:
+            article_url = match.group()
+            # 如果URL存在，则抓取文章内容
+            article_content = fetch_url_article_content(article_url)
+        else:
+            print("No valid URL found in the message.")
+            return None
+
+        if article_content is None:
+            print("Failed to extract article content.")
+            return None
+        else:
+            article_summary = self.chat.get_article_summary(article_content)
+            if msg.from_group():
+                self.sendTextMsg(article_summary, msg.roomid)
+            else:
+                self.sendTextMsg(article_summary, msg.sender)
+
+    def handle_card_article_summary_request(self, msg: WxMsg):
+        '''处理卡片形式的文章总结请求'''
+        # 通过xml获取分享用户名与头像，公众号名与头像，分享时间，文章url
+        print("正在解析卡片信息")
+        info = fetch_info_from_card_article(msg.content)
+        if info['url'] is None:
+            print("No url found in the message.")
+            return None
+        # 提取文章内容
+        article_content = fetch_card_article_content(info['url'])
+        print("文章内容提取完毕")
+        # 交给ai总结
+        if article_content is None:
+            print("Failed to extract article content.")
+            return None
+        else:
+            article_summary = self.chat.get_article_summary(article_content)
+            print("总结生成完毕")
+            card_data = struct_summary_to_dict(article_summary)
+            card_data['officialName'] = info['sourcedisplayname']
+            if msg.from_group():
+                card_data['username'] = self.wcf.get_alias_in_chatroom(info['fromusername'], msg.roomid)
+                abspath = os.path.abspath(generate_article_summary_card(card_data))
+                self.wcf.send_image(abspath, msg.roomid)
+                print("卡片生成完毕")
+            else:
+                card_data['username'] = info['fromusername']
+                abspath = os.path.abspath(generate_article_summary_card(card_data))
+                self.wcf.send_image(abspath, msg.sender)
+                print("卡片生成完毕")
+            # if msg.from_group():
+            #     self.sendTextMsg(article_summary, msg.roomid)
+            # else:
+            #     self.sendTextMsg(article_summary, msg.sender)

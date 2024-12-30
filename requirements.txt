@@ -18,3 +18,6 @@ zhipuai
 sympy
 tiktoken
 apscheduler
+BeautifulSoup4
+selenium
+jinja2

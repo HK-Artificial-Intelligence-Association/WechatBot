@@ -189,11 +189,11 @@ class DeepSeek():
             rsp = rsp.replace("\n\n", "\n")
             self.updateMessage(wxid, rsp, "assistant")
         except AuthenticationError:
-            self.LOG.error("OpenAI API 认证失败，请检查 API 密钥是否正确")
+            self.LOG.error("Deepseek API 认证失败，请检查 API 密钥是否正确")
         except APIConnectionError:
-            self.LOG.error("无法连接到 OpenAI API，请检查网络连接")
+            self.LOG.error("无法连接到 Deepseek API，请检查网络连接")
         except APIError as e1:
-            self.LOG.error(f"OpenAI API 返回了错误：{str(e1)}")
+            self.LOG.error(f"Deepseek API 返回了错误：{str(e1)}")
         except Exception as e0:
             self.LOG.error(f"发生未知错误：{str(e0)}")
 

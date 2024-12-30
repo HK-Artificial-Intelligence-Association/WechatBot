@@ -68,7 +68,8 @@ def create_database():
         chat BOOLEAN DEFAULT FALSE,
         autoSummary BOOLEAN DEFAULT FALSE,
         callSummary BOOLEAN DEFAULT FALSE,
-        periodStat BOOLEAN DEFAULT FALSE
+        periodStat BOOLEAN DEFAULT FALSE,
+        articleSummary BOOLEAN DEFAULT FALSE
     )
     ''')
 
@@ -212,7 +213,7 @@ def fetch_messages_from_last_two_hour(roomid):
         conn.close()
 
 # 调用指定时间内的消息
-def fetch_messages_from_last_some_hour(roomid,time_hours):
+def fetch_messages_from_last_some_hour(roomid, time_hours):
     """从数据库中获取过去几个小时内的所有消息，并打印获取到的消息内容"""
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -236,13 +237,15 @@ def fetch_messages_from_last_some_hour(roomid,time_hours):
                 content, sender_id, timestamp = row
                 readable_time = datetime.fromtimestamp(timestamp).strftime('%Y年%m月%d日 %H:%M:%S')
                 content = contentFilter(content)#过滤掉xml
-                message = {
-                    "content": content,
-                    "sender_id": sender_id,
-                    "time": readable_time
-                }
-                messages.append(message)
-                print(f"内容: {content}, 发送者ID: {sender_id}, 时间: {readable_time}")
+                if content != '':
+                    message = {
+                        "sender_id": sender_id,
+                        "content": content,
+                        "time": readable_time
+                    }
+                    messages.append(message)
+                    print(f"发送者ID: {sender_id}, 内容: {content}, 时间: {readable_time}")
+                else: print("过滤掉空消息")
         else:
             print(f"过去{time_hours}小时内没有消息。")
             return []
@@ -362,7 +365,7 @@ def fetch_permission_from_db():
     '''从数据库中获取房间权限'''
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT roomid, admin, chat, autoSummary, callSummary, periodStat FROM permission")
+    cursor.execute("SELECT roomid, admin, chat, autoSummary, callSummary, periodStat, articleSummary FROM permission")
 
     results = cursor.fetchall()
     
@@ -373,7 +376,8 @@ def fetch_permission_from_db():
             'chat': bool(result[2]),
             'autoSummary': bool(result[3]),
             'callSummary': bool(result[4]),
-            'periodStat': bool(result[5])
+            'periodStat': bool(result[5]),
+            'articleSummary': bool(result[6])
         }
     
     conn.close()

@@ -42,8 +42,10 @@ class ChatGPT():
     def get_summary1(self, messages, roomid):
         """根据微信群聊消息列表生成总结"""
     
-        messages_with_boundaries = self.add_boundaries(messages)
+        messages_as_text = self.messages_to_text(messages)
+        messages_with_boundaries = self.add_boundaries(messages_as_text)
         messages_as_string = "\n".join(messages_with_boundaries)
+        
         # 构建新的提示词
         summary_prompt = (
             '''
@@ -59,26 +61,19 @@ class ChatGPT():
             - 吐槽凸显技术性、观点性、价值性
             - 用词尖酸刻薄，说话阴阳怪气，可以适当说脏话，有话直说无所顾忌，但要有理有据
             - 体现自己作为一只青藏高原野生兔狲的身份
+            - 不能原封不动的使用群成员的发言，必须通过你自己的思考来吐槽
             - 字数少于50字
 
             ### Skill 2: 今天群里聊了啥
             - 根据聊天记录列表，筛选出具有理论或技术价值的话题，或内容有趣、新颖的话题，或持续时间较长、参与人数较多、较为重要的话题进行总结（确保不要生成多余的内容，并将相似内容的话题合并）。
             - 在总结中，对讨论中提到的晦涩或少见的技术性内容时，请进行非常简短的拓展补充说明（不超过一两句话）。
-            - 讨论中会穿插一些引用回复，比如
-            "ZH"
-                ],
-                "time": "2024年09月24日 16:08:28"
-            },
-            {
-                "content": "针对Colorshow23的消息\"那些预交学费卖课的人退费了吗\"进行了回复：原地转字节教学[旺柴]",
-            这段，意思是ZH引用Colorshow23的话并进行了回复。请不要把引用内容误解为回复者所说。
             - 每日总结报告的输出格式要求请参考如下例子：
 
             话题名：带序号的话题总结（20字以内）  
             讨论概述：50到150字左右。提炼对话有价值的聊天内容与群友观点。应选择重点、有价值的内容或观点进行展示，避免泛泛地进行概括性省略。要做到有因有果、有始有终，正确引用群成员名称
             emoji叙事：三个与话题有关的emoji表情符号  
             参与者：不超过5个人，人名不重复  
-            🕰 YY.MM.DD HH:MM - HH:MM  
+            🕰 YYYY.MM.DD HH:MM - HH:MM  
             分割线：---------------------
 
             ## Constraints
@@ -107,7 +102,8 @@ class ChatGPT():
     def get_summary2(self, messages, roomid):
         """根据微信群聊消息列表生成总结"""
     
-        messages_with_boundaries = self.add_boundaries(messages)
+        messages_as_text = self.messages_to_text(messages)
+        messages_with_boundaries = self.add_boundaries(messages_as_text)
         messages_as_string = "\n".join(messages_with_boundaries)
 
         # 构建新的提示词
@@ -265,6 +261,81 @@ class ChatGPT():
             # 删除多余的记录，倒着删，且跳过第一个的系统消息
             del self.conversation_list[wxid][1]
         
+    def get_article_summary(self, article_content:str):
+        article_prompt = '''
+            ## Role: 文章总结专家
+            ## version: 0.1
+            ## Description: 你是一个总结文章的专家
+            ## Goals: 提取每篇文章最关键的核心内容，并生成一篇总结
+
+            ## Constrains:
+            - 除非有充分理由，请不要随意修改和缩减原先JSON中的内容
+            - 如果没有明显的内容重组，直接使用原始值构建文章
+            - 确保输出的日报格式完全符合Output Format
+            - 输出语言为[中文]
+
+            ## Output format:
+            按照以下格式输出文章的总结：
+            <title>{标题}</title>
+            <content>{总结的文章内容}</content>
+            <keywords>{关键词}</keywords>
+
+            ## Example
+            <title>这是标题</title>
+            <content>这里是总结的文章内容</content>
+            <keywords>关键词1 关键词2 关键词3</keywords>
+
+            ## Workflow: 
+            - 阅读输入的文章内容
+            - 给这篇文章取一个标题
+            - 提炼出文章的核心内容与观点，生成文章总结
+            - 生成具有代表性的关键词
+            - 严格按照Output format输出
+        '''
+        try:
+            rsp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": article_prompt},
+                    {"role": "user", "content": article_content}
+                ],
+                temperature=0
+            )
+            article_summary = rsp.choices[0].message.content
+        except AuthenticationError:
+            self.LOG.error("OpenAI API 认证失败，请检查 API 密钥是否正确")
+        except APIConnectionError:
+            self.LOG.error("无法连接到 OpenAI API，请检查网络连接")
+        except APIError as e1:
+            self.LOG.error(f"OpenAI API 返回了错误：{str(e1)}")
+        except Exception as e0:
+            self.LOG.error(f"发生未知错误：{str(e0)}")
+        return article_summary
+    
+    def add_boundaries(self, messages):
+        # 创建一个新的列表用于存储带边界的消息
+        messages_with_boundaries = []
+        
+        # 遍历每一条消息
+        for message in messages:
+            # 使用json.dumps将字典转换为JSON字符串
+            messages_with_boundaries.append(json.dumps(message, ensure_ascii=False, indent = 2))  # 确保支持Unicode字符
+            # 在每条消息后添加边界符
+            messages_with_boundaries.append("----------------")
+        
+        # 返回处理后的消息列表
+        return messages_with_boundaries
+
+    #将格式化消息转化为口语化消息
+    def messages_to_text(self, messages):
+        # 初始化一个空列表来存储格式化后的消息
+        messages_text = []
+
+        # 使用 for 循环逐一处理每个 message
+        for message in messages:
+            message_text = f"{message['sender']}在{message['time']}发布了一条消息，内容为：{message['content']}"
+            messages_text.append(message_text)
+        return messages_text
 
     def add_boundaries(self, messages):
         # 创建一个新的列表用于存储带边界的消息
