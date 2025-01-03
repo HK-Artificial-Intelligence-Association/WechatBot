@@ -33,7 +33,8 @@ from configuration import Config # 配置管理模块
 from constants import ChatType # 常量定义模块，定义了聊天类型
 from job_mgmt import Job # 作业管理基类，`Robot`类继承自此
 from db import store_message, insert_roomid, store_summary # 导入 db.py 中的 store_message 函数,add_unique_roomids_to_roomid_table 函数
-from db import fetch_messages_from_last_some_hour, fetch_summary_from_db, collect_stats_in_room, fetch_permission_from_db, fetch_roomid_list
+from db import fetch_messages_from_last_some_hour, fetch_summary_from_db, collect_stats_in_room
+from db import fetch_permission_from_db, fetch_roomid_list, get_auto_summary_settings
 from utils.yaml_utils import update_yaml
 from tools import *
 __version__ = "39.0.10.1" # 版本号
@@ -57,6 +58,7 @@ class Robot(Job):#robot类继承自job类
         self.newsQueue = Queue() # 初始化新闻队列
         self.stopEvent = threading.Event()
         self.permissions = fetch_permission_from_db()
+        self.model_value = chat_type # 当前模型编号
 
     # 根据聊天类型初始化对应的聊天模型
         if ChatType.is_in_chat_types(chat_type):
@@ -88,36 +90,49 @@ class Robot(Job):#robot类继承自job类
                 self.model_type = 'DeepSeek-deepseek-chat'
             else:
                 self.LOG.warning("未配置模型")
-                self.chat = None# 如果没有合适的配置，将聊天模型设置为None
+                self.chat = None # 如果没有合适的配置，将聊天模型设置为None
+                self.model_value = 0 # 配置模型失败，切换至未设置的默认值
         else:
             # 如果聊天类型不在支持的列表中，也尝试进行初始化
             # 类似的逻辑处理...
             if TigerBot.value_check(self.config.TIGERBOT):
                 self.chat = TigerBot(self.config.TIGERBOT)
+                self.model_value = ChatType.TIGER_BOT.value
             elif ChatGPT.value_check(self.config.CHATGPT):
                 self.chat = ChatGPT(self.config.CHATGPT)
+                self.model_value = ChatType.CHATGPT.value
             elif ChatGPTt.value_check(self.config.CHATGPTt):
                 self.chat = ChatGPTt(self.config.CHATGPTt)
+                self.model_value = ChatType.CHATGPTt.value
             elif Moonshot.value_check(self.config.MOONSHOT):
                 self.chat = Moonshot(self.config.MOONSHOT)
+                self.model_value = ChatType.MOONSHOT.value
             elif Qwen.value_check(self.config.QWEN):
                 self.chat = Qwen(self.config.QWEN)
+                self.model_value = ChatType.QWEN.value
             elif XinghuoWeb.value_check(self.config.XINGHUO_WEB):
                 self.chat = XinghuoWeb(self.config.XINGHUO_WEB)
+                self.model_value = ChatType.XINGHUO_WEB.value
             elif ChatGLM.value_check(self.config.CHATGLM):
                 self.chat = ChatGLM(self.config.CHATGLM)
+                self.model_value = ChatType.CHATGLM.value
             elif BardAssistant.value_check(self.config.BardAssistant):
                 self.chat = BardAssistant(self.config.BardAssistant)
+                self.model_value = ChatType.BardAssistant.value
             elif ZhiPu.value_check(self.config.ZhiPu):
                 self.chat = ZhiPu(self.config.ZhiPu)
+                self.model_value = ChatType.ZhiPu.value
             elif DeepSeek.value_check(self.config.DEEPSEEK):
                 self.chat = DeepSeek(self.config.DEEPSEEK)
+                self.model_value = ChatType.DeepSeek.value
             else:
                 self.LOG.warning("未配置模型")
                 self.chat = None
+                self.model_value = 0
 
         self.LOG.info(f"已选择: {self.chat}")
         #self.current_msg = None
+        self.setScheduleSummary()# 设置总结发送时间表
 
     @staticmethod
     #标记一个静态方法
@@ -290,14 +305,15 @@ class Robot(Job):#robot类继承自job类
             print("没有找到匹配的数字")
 
     def change_model(self, chat_type: int):
-
+        previous_value = chat_type
+        self.model_value = chat_type
         if chat_type and ChatType.is_in_chat_types(chat_type):
             if chat_type == ChatType.CHATGPT.value and ChatGPT.value_check(self.config.CHATGPT):
-                self.chat = ChatGPT(self.config.CHATGPT)  
+                self.chat = ChatGPT(self.config.CHATGPT)
                 self.model_type = 'ChatGPT-gpt-4o-mini'
             elif chat_type == ChatType.CHATGPTt.value and ChatGPTt.value_check(self.config.CHATGPTt):
                 self.chat = ChatGPTt(self.config.CHATGPTt)
-                self.model_type = 'ChatGPT-gpt-4o'
+                self.model_type = 'ChatGPT-gpt-4o-32k'
             elif chat_type == ChatType.MOONSHOT.value and Moonshot.value_check(self.config.MOONSHOT):
                 self.chat = Moonshot(self.config.MOONSHOT)
                 self.model_type = 'Moonshot-moonshot-v1-32k'
@@ -311,19 +327,25 @@ class Robot(Job):#robot类继承自job类
                 self.LOG.warning("未配置模型")
                 self.chat = None  # 如果没有合适的配置，将聊天模型设置为None
                 self.model_type = None
+                self.model_value = previous_value
         else:
             # 如果聊天类型不在支持的列表中，也尝试进行初始化
             if ChatGPT.value_check(self.config.CHATGPT):
                 self.chat = ChatGPT(self.config.CHATGPT)
+                self.model_value = ChatType.CHATGPT.value
             elif ChatGPTt.value_check(self.config.CHATGPTt):
                 self.chat = ChatGPTt(self.config.CHATGPTt)
+                self.model_value = ChatType.CHATGPTt.value
             elif Moonshot.value_check(self.config.MOONSHOT):
                 self.chat = Moonshot(self.config.MOONSHOT)
+                self.model_value = ChatType.MOONSHOT.value
             elif Qwen.value_check(self.config.QWEN):
                 self.chat = Qwen(self.config.QWEN)
+                self.model_value = ChatType.QWEN.value
             else:
-                self.LOG.warning("未配置模型")
+                self.LOG.warning("切换模型失败")
                 self.chat = None
+                self.model_value = previous_value
     
         self.LOG.info(f"已选择: {self.chat}")
 
@@ -568,7 +590,52 @@ class Robot(Job):#robot类继承自job类
             if developers: # 发送调试消息
                 self.sendTextMsg(summary, developers[0])
 
+    def setScheduleSummary(self):
+        settings = get_auto_summary_settings()
 
+        for row in settings:
+            room_id, summary_time, summary_model = row
+            # 设置默认值
+            if summary_time is None:
+                summary_time = "20:00"
+            
+            self.onEveryTime(
+                summary_time, self.genAndsendSummary,
+                room_id, summary_model, time_hours = 24
+            )
+            self.LOG.info(f"成功设置群聊{room_id}于{summary_time}的自动总结")
+        return
+    
+    def genAndsendSummary(self, receiver, summary_model = None, time_hours = 24):
+        developers = fetch_roomid_list("admin")  # 指定调试群组，将总结内容发送至群组
+        previous_value = self.model_value
+        if summary_model: self.change_model(summary_model)# 切换至群聊设置的总结模型
+        messages_withwxid = fetch_messages_from_last_some_hour(roomid = receiver, time_hours=time_hours)
+        # 将messages里的wxid替换成wx昵称
+        messages = []
+        valid_name = set()
+        for message_withwxid in messages_withwxid:
+            sender=self.wcf.get_alias_in_chatroom(message_withwxid["sender_id"], receiver)
+            if sender == "": # 将messages里的wxid替换成wx昵称
+                sender = message_withwxid["sender_id"]
+                self.LOG.info(f"{sender}昵称获取错误，已使用wxid替换")
+            elif sender not in valid_name:
+                self.LOG.info(f"{sender}昵称获取成功")
+                valid_name.add(sender)
+            message = {
+                "content": message_withwxid["content"],
+                "sender":sender,
+                "time": message_withwxid["time"]
+            }
+            messages.append(message)
+
+        summary = self.chat.get_summary1(messages, receiver)# 生成聊天总结
+        self.sendTextMsg(summary, receiver)# 发送总结内容
+        if developers: # 发送调试消息
+            self.sendTextMsg(summary, developers[0])
+        if summary_model: self.change_model(previous_value) # 切换回原本模型
+        return
+    
     def saveAutoSummary(self, time_hours=2):
         """
         生成并保存聊天总结

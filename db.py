@@ -69,7 +69,9 @@ def create_database():
         autoSummary BOOLEAN DEFAULT FALSE,
         callSummary BOOLEAN DEFAULT FALSE,
         periodStat BOOLEAN DEFAULT FALSE,
-        articleSummary BOOLEAN DEFAULT FALSE
+        articleSummary BOOLEAN DEFAULT FALSE,
+        summaryTime TEXT,
+        summaryModel TEXT
     )
     ''')
 
@@ -383,7 +385,6 @@ def fetch_permission_from_db():
     conn.close()
     return permissions
 
-
 def fetch_roomid_list(type):
     '''输出具有指定权限的房间ID列表'''
         # 连接到SQLite数据库
@@ -403,3 +404,17 @@ def fetch_roomid_list(type):
 
     # 将结果转换为列表，因为fetchall()返回的是元组列表
     return roomids
+
+def get_auto_summary_settings():
+    """获取所有需要自动总结的群设置"""
+    conn = sqlite3.connect(db_path)  # 确保数据库路径是正确的
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+                        SELECT roomid, summaryTime, summaryModel 
+                        FROM permission
+                        WHERE autoSummary = TRUE
+                       ''')
+        return cursor.fetchall()  # 返回查询结果
+    finally:
+        conn.close()  # 确保连接被关闭
