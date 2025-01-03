@@ -337,6 +337,20 @@ class ChatGPT():
             messages_text.append(message_text)
         return messages_text
 
+    def add_boundaries(self, messages):
+        # 创建一个新的列表用于存储带边界的消息
+        messages_with_boundaries = []
+        
+        # 遍历每一条消息
+        for message in messages:
+            # 使用json.dumps将字典转换为JSON字符串
+            messages_with_boundaries.append(json.dumps(message, ensure_ascii=False, indent = 2))  # 确保支持Unicode字符
+            # 在每条消息后添加边界符
+            messages_with_boundaries.append("----------------")
+        
+        # 返回处理后的消息列表
+        return messages_with_boundaries
+    
 if __name__ == "__main__":
     from configuration import Config
     config = Config().CHATGPT

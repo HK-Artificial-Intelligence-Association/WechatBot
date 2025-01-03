@@ -875,6 +875,7 @@ class Robot(Job):#robot类继承自job类
             print(f"房间{roomid}未拥有{permission_type}权限")
             return False
 
+
     def handle_url_article_summary_request(self, msg: WxMsg):
         '''处理url形式的文章总结请求'''
         match = re.search(r"https?://[^\s]+", msg.content)
@@ -930,5 +931,3 @@ class Robot(Job):#robot类继承自job类
             #     self.sendTextMsg(article_summary, msg.roomid)
             # else:
             #     self.sendTextMsg(article_summary, msg.sender)
-    
-
