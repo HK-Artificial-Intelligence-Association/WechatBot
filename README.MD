@@ -217,6 +217,8 @@ robot.onEveryTime("19:00", robot.saveAutoSummary, time_hours=7)
 
 #### 权限管理
 
+> **注意**：使用权限表配置群聊的功能之前，仍然需要在config.yaml中groups.enable处添加roomid
+
 可以通过 `/getid` 命令得到 wxid 以及 roomid，随后在 `wechat_bot.db` 的数据库的 permission表 中设置权限。
 
 ![定时聊天总结](./doc/permission.png)
