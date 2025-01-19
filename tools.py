@@ -5,6 +5,7 @@ from PIL import Image
 import io
 import os
 import jinja2
+import json
 from pathlib import Path
 from datetime import datetime
 import requests
@@ -429,3 +430,55 @@ def struct_summary_to_dict(struct_summary: str) -> dict:
     }
 
     return card_data
+
+def submit_activation_code_for_room(activation_code: str, roomid: str) -> dict:
+    """
+    将激活码和 roomid 作为 JSON 数据，以 POST 请求发送到指定 URL。
+   
+    :param activation_code: 激活码字符串
+    :param roomid: 房间 ID 字符串
+    :return: 返回一个包含请求结果的字典，包含 'success' 和 'message' 字段
+    """
+    # 目标 URL
+    url = "https://apis.memenews.cn/api/user/activationCode/room"
+    if url == '': return
+    print(url,activation_code,roomid)
+   
+    # 构造 JSON 数据
+    activation_data = {
+        "code": activation_code,
+        "roomId": roomid
+    }
+   
+    # 设置请求头，指定内容类型为 application/json
+    headers = {
+        "Content-Type": "application/json"
+    }
+   
+    try:
+        # 发送 POST 请求
+        response = requests.post(url, data=json.dumps(activation_data), headers=headers)
+       
+        # 打印响应状态码和内容
+        print(f"请求状态码: {response}")
+        data = response.json()
+        print(f"响应内容: {data}")
+
+        # 如果请求成功（状态码为 2xx），返回成功信息
+        if data['statusCode'] // 100 == 2:
+            return {
+                'success': True,
+                'message': data['statusText']  # 或者 response.json() 如果返回的是 JSON
+            }
+        else:
+            return {
+                'success': False,
+                'message': data['statusText']  # 或者 response.json() 如果返回的是 JSON
+            }
+    except requests.exceptions.RequestException as e:
+        # 处理请求异常
+        print(f"请求发生异常: {e}")
+        return {
+            'success': False,
+            'message': str(e)
+        }

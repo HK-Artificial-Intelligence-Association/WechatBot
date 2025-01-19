@@ -286,6 +286,9 @@ class Robot(Job):#robot类继承自job类
                 self.handle_get_id_request(msg)
             elif "/聊天统计" in content:
                 self.handle_statistics_request(msg)
+            elif "/群聊激活" in content:
+                if self.hasPermission(msg.sender, "admin"):
+                    self.handle_activation_request(msg)
             elif self.active:
                 # 如果机器人处于活跃状态，则处理其他消息
                 self.handle_other_messages(msg)
@@ -931,3 +934,25 @@ class Robot(Job):#robot类继承自job类
             #     self.sendTextMsg(article_summary, msg.roomid)
             # else:
             #     self.sendTextMsg(article_summary, msg.sender)
+
+    def handle_activation_request(self, msg: WxMsg):
+        if not msg.from_group: return # 忽略不在群聊的激活请求
+        match = re.search(r"/群聊激活\s*(\S.*)", msg.content)
+        if match:
+            activation_code = match.group(1).strip()  # 获取匹配的激活码并去除首尾空格
+            print(f"提取到激活码: {activation_code}")  # 打印激活码
+
+            # 向后端post 激活码以及roomid
+            result = submit_activation_code_for_room(activation_code, msg.roomid)
+
+            if result['success']:
+                self.LOG.info(f"激活成功: {result['message']}")
+                self.sendTextMsg(result['message'], msg.roomid)
+            else:
+                self.LOG.warning(f"激活失败: {result['message']}")
+                self.sendTextMsg(result['message'], msg.roomid)
+        else:
+            # 表明激活失败
+            self.LOG.info("哎呀呀，好像没有找到激活码呢~")  # 如果没有找到，打印提示信息
+            self.sendTextMsg("哎呀呀，好像没有找到激活码呢~", msg.roomid)
+        return
