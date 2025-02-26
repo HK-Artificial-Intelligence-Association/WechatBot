@@ -18,11 +18,15 @@ def num_tokens_from_string(string: str, model_name: str) -> int:
     """
     # Returns the number of tokens in a text string.
 
+    try:
     encoding_name = tiktoken.encoding_for_model(model_name)
 
     encoding = tiktoken.get_encoding(encoding_name.name)
-    num_tokens = len(encoding.encode(string))
-    return num_tokens
+        return len(encoding.encode(string))
+    except KeyError:
+        # 对于不支持的模型，返回一个默认的编码器
+        encoding = tiktoken.get_encoding("cl100k_base")  # GPT-4 使用的编码器
+        return len(encoding.encode(string))
 
 # print(tiktoken.encoding_for_model('gpt-4o').name)
 # print(num_tokens_from_string('tiktoken is great!', 'o200k_base'))
