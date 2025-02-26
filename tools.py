@@ -63,7 +63,12 @@ def fetch_news_json(url):
     if response.status_code == 200:
         data = response.json()
         messages = data['messages']
-        print(f"获取到响应{response.json()}")
+        print(f"获取到响应")
+        try:
+           responseForHealthCheck = requests.get('')
+           print('轮询以更新服务状态成功')
+        except Exception as e:
+            print(f'轮询以获取服务状态失败')
         if messages:
             print(f"获取到数据{messages}")
         else: print("获取消息内容为空")

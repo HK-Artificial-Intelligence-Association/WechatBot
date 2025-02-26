@@ -21,7 +21,7 @@ def num_tokens_from_string(string: str, model_name: str) -> int:
     try:
     encoding_name = tiktoken.encoding_for_model(model_name)
 
-    encoding = tiktoken.get_encoding(encoding_name.name)
+        encoding = tiktoken.get_encoding(encoding_name.name)
         return len(encoding.encode(string))
     except KeyError:
         # 对于不支持的模型，返回一个默认的编码器
