@@ -416,8 +416,9 @@ def struct_summary_to_dict(struct_summary: str) -> dict:
     # 提取 title content keywords
     title = re.search(r'<title>(.*?)</title>', struct_summary).group(1)
     content = re.search(r'<content>(.*?)</content>', struct_summary, re.S).group(1)
-    keywords = re.search(r'<keywords>(.*?)</keywords>', struct_summary).group(1).split()
-
+    # keywords = re.search(r'<keywords>(.*?)</keywords>', struct_summary).group(1).split()
+    keywords_content = re.search(r'<keywords>(.*?)</keywords>', struct_summary).group(1)
+    keywords = [word.strip(',') for word in keywords_content.split()]
     # 获取当前时间
     current_time = time.localtime()
     year = current_time.tm_year
