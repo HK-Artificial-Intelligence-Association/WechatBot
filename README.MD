@@ -1,5 +1,7 @@
 # WeChatRobot
 
+> 该项目已经废弃。在 2025.5 后便已失效且不再维护。
+
 <details><summary><font color="red" size="12">免责声明【必读】</font></summary>
 
 本工具仅供学习交流使用，不保证本工具对微信账号的安全性。
